@@ -1,0 +1,7 @@
+# Eclipse project files
+.project
+.cproject
+.pydevproject
+.settings/*
+
+out/*
