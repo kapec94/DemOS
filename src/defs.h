@@ -1,8 +1,6 @@
 /*
  * defs.h
  *
- *  Created on: 22 kwi 2014
- *      Author: Mateusz
  */
 
 #ifndef DEFS_H_
@@ -17,7 +15,8 @@ typedef u32					size_t;
 
 #define NULL	((void*)0)
 
-#define E_OK	0
+#define S_OK	0
 #define E_NO	1
+#define E_VAL	2
 
 #endif /* DEFS_H_ */

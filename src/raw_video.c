@@ -7,16 +7,21 @@
 
 #include <defs.h>
 #include <string.h>
+#include <vga.h>
 
 #include "raw_video.h"
 
 #define ASSERT_INIT()		if (video_ptr == NULL) return E_NO
 
-u16* video_ptr = NULL;
-u16* video_base = NULL;
+static void _init_cursor();
 
-u32 video_cols = 0;
-u32 video_rows = 0;
+static u16* video_ptr = NULL;
+static u16* video_base = NULL;
+
+static u32 video_cols = 0;
+static u32 video_rows = 0;
+
+static u8 video_attr = RVID_ATTR(COLOR_LGRAY, COLOR_BLACK);
 
 int rvid_init(void* base, int width, int height)
 {
@@ -24,46 +29,60 @@ int rvid_init(void* base, int width, int height)
 		base = DEFAULT_VIDEO_BASE;
 	}
 
+	_init_cursor();
+
 	video_ptr = video_base = (u16*)base;
 	video_cols = width;
 	video_rows = height;
 
-	return E_OK;
+	return S_OK;
+}
+
+int rvid_clrscr()
+{
+	ASSERT_INIT();
+	asm volatile("repz stosw"
+			: /* no output */
+			: "c" (video_cols * video_rows),
+			  "D" (video_base),
+			  "a" ((u16)(video_attr << 8 | ' '))
+			:);
+
+	return S_OK;
+}
+
+u16 rvid_getattr()
+{
+	return video_attr;
+}
+
+void rvid_setattr(u16 attr)
+{
+	video_attr = attr;
 }
 
 int rvid_getpos(int* x, int* y)
 {
 	ASSERT_INIT();
-	u32 offset = (u32)video_ptr - (u32)video_base;
+	u32 offset = video_ptr - video_base;
 
 	if (x) {
 		*x = offset % video_cols;
 	}
 	if (y) {
-		*y = offset / video_rows;
+		*y = offset / video_cols;
 	}
 
-	return E_OK;
+	return S_OK;
 }
 
 int rvid_setpos(int x, int y)
 {
 	ASSERT_INIT();
-	video_ptr = video_base + y * video_cols + x;
-
-	return E_OK;
-}
-
-int rvid_movepos(int x, int y)
-{
-	ASSERT_INIT();
-	int offset = (u32)video_ptr - (u32)video_base;
-	offset += y * video_cols + x;
-
-	if (offset < 0) return E_NO;
-
+	u32 offset = y * video_cols + x;
 	video_ptr = video_base + offset;
-	return E_OK;
+
+	return S_OK;
 }
 
 int rvid_putchar(u8 c)
@@ -78,11 +97,13 @@ int rvid_putchar(u8 c)
 		rvid_setpos(0, y);
 		break;
 	case '\n':
-		rvid_putchar('\r');
-		rvid_movepos(0, 1);
+		rvid_getpos(NULL, &y);
+		rvid_setpos(0, y + 1);
+		break;
+	case '\0':
 		break;
 	default:
-		*video_ptr++ = (0x07 << 8) | c; // Light-gray on black
+		*video_ptr++ = video_attr << 8 | c;
 		break;
 	}
 
@@ -94,13 +115,12 @@ int rvid_puts(const char* s)
 	ASSERT_INIT();
 	while (rvid_putchar(*s++) != 0) ;
 
-	return E_OK;
+	return S_OK;
 }
 
-int rvid_clrscr()
+void _init_cursor()
 {
-	ASSERT_INIT();
-	memset(video_base, 0, video_cols * video_rows);
-
-	return E_OK;
+	// We disable cursor
+	u8 csr = vga_read_crt(VGA_CRT_CSR);
+	vga_write_crt(VGA_CRT_CSR, csr | VGA_CSR_CD);
 }

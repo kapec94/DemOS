@@ -4,12 +4,13 @@ OUT=out
 KERNEL=demos.exe
 
 CC=gcc
-CC_INCLUDES=-I. -I$(SRC)
+CC_INCLUDES=-I$(SRC)
 CC_FLAGS=-c -m32 -g -Wall $(CC_INCLUDES)
 LD=/usr/bin/ld
 LD_FLAGS=-T link.ld -m i386pe --file-alignment=0 -S
+PYTHON=C:/Python34/python.exe
 
-OBJECTS=header.o main.o string.o raw_video.o cpu.o com.o
+OBJECTS=header.o main.o string.o raw_video.o cpu.o com.o bda.o vga.o
 FILES=$(OUT)/$(KERNEL) $(foreach o,$(OBJECTS),$(OUT)/$(o)) configuration.ld $(SRC)/configuration.h
 
 CONFIG=./config.py
@@ -22,16 +23,19 @@ RELEASE_COMMAND='umount /media/demos || true'
 SSH=ssh $(INSTALL_HOST)
 SCP=scp
 
+$(OUT):
+	mkdir -p $@
+
 configuration.%:
-	$(CONFIG) conf $@
+	$(PYTHON) $(CONFIG) conf $@
 
-%.o: $(SRC)/%.c $(SRC)/configuration.h
+%.o: $(SRC)/%.c $(SRC)/configuration.h $(OUT)
 	$(CC) $(CC_FLAGS) -o $(OUT)/$@ $<
 
-%.o: $(SRC)/%.S $(SRC)/configuration.h
+%.o: $(SRC)/%.S $(SRC)/configuration.h $(OUT)
 	$(CC) $(CC_FLAGS) -o $(OUT)/$@ $<
 
-$(KERNEL): $(OBJECTS) configuration.ld
+$(KERNEL): $(OBJECTS) $(SRC)/configuration.h configuration.ld $(OUT)
 	$(LD) $(LD_FLAGS) -o $(OUT)/$@ $(foreach o,$(OBJECTS),$(OUT)/$(o))
 
 all: $(KERNEL)

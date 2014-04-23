@@ -7,9 +7,18 @@
 
 void* memset(void* ptr, int value, size_t num)
 {
-	u8* _ptr = (u8*)ptr;
-	while (num > 0) {
-		*(_ptr + (--num)) = (u8)value;
-	}
+	asm("repz stosb"
+			: /* no output */
+			: "a" (value), "D" (ptr), "c" (num)
+			: /* no clobber */);
 	return ptr;
+}
+
+void* memcpy(void* dest, const void* src, size_t num)
+{
+	asm("repz movsb"
+			: /* no output */
+			: "S" (src), "D" (dest), "c" (num)
+			: /* no clobber */);
+	return dest;
 }
