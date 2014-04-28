@@ -6,7 +6,7 @@
 #ifndef VGA_H_
 #define VGA_H_
 
-#include <defs.h>
+#include <stddef.h>
 #include <cpu.h>
 
 #define VGA_REG_MISCR	(0x03CC)

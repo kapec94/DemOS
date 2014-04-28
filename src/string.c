@@ -5,6 +5,19 @@
 
 #include <string.h>
 
+size_t strlen(const char* s)
+{
+	size_t i = 0;
+	while (s[i++] != 0);
+	return i;
+}
+
+char* strcpy(char* dest, const char* source)
+{
+	while ((*dest++ = *source++)) ;
+	return dest;
+}
+
 void* memset(void* ptr, int value, size_t num)
 {
 	asm("repz stosb"

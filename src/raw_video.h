@@ -8,7 +8,8 @@
 #ifndef RAW_VIDEO_H_
 #define RAW_VIDEO_H_
 
-#include <defs.h>
+#include <stddef.h>
+#include <stdarg.h>
 
 #define DEFAULT_VIDEO_BASE	(void*)(0xB8000)
 
@@ -33,6 +34,7 @@
 
 int rvid_init(void* base, int width, int height);
 
+u16 rvid_getattr();
 void rvid_setattr(u16 attr);
 int rvid_clrscr();
 
@@ -40,5 +42,8 @@ int rvid_getpos(int* x, int* y);
 int rvid_setpos(int x, int y);
 int rvid_putchar(u8 c);
 int rvid_puts(const char* s);
+
+int rvid_vprintf(const char* f, va_list);
+int rvid_printf(const char* f, ...);
 
 #endif /* RAW_VIDEO_H_ */

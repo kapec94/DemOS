@@ -10,7 +10,7 @@ LD=/usr/bin/ld
 LD_FLAGS=-T link.ld -m i386pe --file-alignment=0 -S
 PYTHON=C:/Python34/python.exe
 
-OBJECTS=header.o main.o string.o raw_video.o cpu.o com.o bda.o vga.o
+OBJECTS=header.o main.o string.o raw_video.o cpu.o com.o bda.o vga.o gdb_impl.o
 FILES=$(OUT)/$(KERNEL) $(foreach o,$(OBJECTS),$(OUT)/$(o)) configuration.ld $(SRC)/configuration.h
 
 CONFIG=./config.py
@@ -43,6 +43,7 @@ all: $(KERNEL)
 install: all
 	$(SSH) $(ACQUIRE_COMMAND)
 	$(SCP) $(OUT)/$(KERNEL) $(INSTALL_HOST):$(BOOT_DIR)/$(KERNEL)
+	$(SCP) grub.cfg $(INSTALL_HOST):$(BOOT_DIR)/grub/grub.cfg
 	$(SSH) $(RELEASE_COMMAND)
 
 release_remote:

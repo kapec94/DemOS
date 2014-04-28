@@ -3,7 +3,7 @@
  *
  */
 
-#include <defs.h>
+#include <stddef.h>
 #include <cpu.h>
 #include "vga.h"
 

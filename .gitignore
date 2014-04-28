@@ -5,3 +5,7 @@
 .settings/*
 
 out/*
+
+# configuration files
+configuration.ld
+src/configuration.h

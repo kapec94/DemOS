@@ -89,8 +89,9 @@
  *
  ****************************************************************************/
 
-#include <stdio.h>
+#include <raw_video.h>
 #include <string.h>
+#include <gdb_impl.h>
 
 /************************************************************************
  *
@@ -531,11 +532,11 @@ static char remcomOutBuffer[BUFMAX];
 
 /* scan for the sequence $<data>#<checksum>     */
 
-unsigned char *
+u8 *
 getpacket(void) {
-	unsigned char *buffer = &remcomInBuffer[0];
-	unsigned char checksum;
-	unsigned char xmitcsum;
+	u8 *buffer = (u8*)&remcomInBuffer[0];
+	u8 checksum;
+	u8 xmitcsum;
 	int count;
 	char ch;
 
@@ -593,8 +594,8 @@ getpacket(void) {
 
 /* send the packet in buffer.  */
 
-void putpacket(unsigned char *buffer) {
-	unsigned char checksum;
+void putpacket(u8 *buffer) {
+	u8 checksum;
 	int count;
 	char ch;
 
@@ -653,7 +654,7 @@ void set_char(char *addr, int val) {
 char * mem2hex(mem, buf, count, may_fault)
 	char *mem;char *buf;int count;int may_fault; {
 	int i;
-	unsigned char ch;
+	u8 ch;
 
 	if (may_fault)
 		mem_fault_routine = set_mem_err;
@@ -675,7 +676,7 @@ char * mem2hex(mem, buf, count, may_fault)
 char * hex2mem(buf, mem, count, may_fault)
 	char *buf;char *mem;int count;int may_fault; {
 	int i;
-	unsigned char ch;
+	u8 ch;
 
 	if (may_fault)
 		mem_fault_routine = set_mem_err;
@@ -778,7 +779,6 @@ void handle_exception(int exceptionVector) {
 	int sigval, stepping;
 	int addr, length;
 	char *ptr;
-	int newPC;
 
 	gdb_i386vector = exceptionVector;
 
@@ -813,13 +813,13 @@ void handle_exception(int exceptionVector) {
 
 	*ptr = '\0';
 
-	putpacket(remcomOutBuffer);
+	putpacket((u8*)remcomOutBuffer);
 
 	stepping = 0;
 
 	while (1 == 1) {
 		remcomOutBuffer[0] = 0;
-		ptr = getpacket();
+		ptr = (char*)getpacket();
 
 		switch (*ptr++) {
 		case '?':
@@ -906,8 +906,6 @@ void handle_exception(int exceptionVector) {
 			if (hexToInt(&ptr, &addr))
 				registers[PC] = addr;
 
-			newPC = registers[PC];
-
 			/* clear the trace bit */
 			registers[PS] &= 0xfffffeff;
 
@@ -920,16 +918,11 @@ void handle_exception(int exceptionVector) {
 
 			/* kill the program */
 		case 'k': /* do nothing */
-#if 0
-			/* Huh? This doesn't look like "nothing".
-			 m68k-stub.c and sparc-stub.c don't have it.  */
-			BREAKPOINT ();
-#endif
 			break;
 		} /* switch */
 
 		/* reply to the request */
-		putpacket(remcomOutBuffer);
+		putpacket((u8*)remcomOutBuffer);
 	}
 }
 
