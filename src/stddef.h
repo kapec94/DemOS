@@ -17,6 +17,10 @@ typedef u16					wint_t;
 
 #define NULL	((void*)0)
 
+#ifdef __STRICT_ANSI__
+#define inline __inline__
+#endif /* __STRICT_ANSI__ */
+
 #define S_OK	0
 #define E_NO	1
 #define E_VAL	2

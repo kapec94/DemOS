@@ -2,13 +2,13 @@
 #include <configuration.h>
 
 .data
-	.set mb_flags, (MULTIBOOT_INCLUDE_MEMORY_INFO | MULTIBOOT_INCLUDE_VIDEO_INFO |	MULTIBOOT_LOAD_INFO_AVAILABLE)
+	.set mb_flags, (1 << MBH_INCLUDE_MEMORY_INFO | 1 << MBH_INCLUDE_VIDEO_INFO | 1 << MBH_LOAD_INFO_AVAILABLE)
 
 .section .header
 	// Multiboot basic header
-	.long	MULTIBOOT_MAGIC
+	.long	MBH_MAGIC
 	.long	mb_flags
-	.long	MULTIBOOT_CHECKSUM(mb_flags)
+	.long	MBH_CHECKSUM(mb_flags)
 
 	// Kernel load addresses
 	.long	KERNEL_LOAD_ADDRESS
@@ -28,8 +28,9 @@
 _entry:
 	movl	$STACK_BASE,	%esp
 	movl	%esp,	%ebp
+
 	pushl	%ebx
 	pushl	%eax
-_loop:
-	jmp 	_kstart
+
+	call 	_kstart
 	hlt

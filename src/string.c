@@ -20,7 +20,7 @@ char* strcpy(char* dest, const char* source)
 
 void* memset(void* ptr, int value, size_t num)
 {
-	asm("repz stosb"
+	__asm__("repz stosb"
 			: /* no output */
 			: "a" (value), "D" (ptr), "c" (num)
 			: /* no clobber */);
@@ -29,7 +29,7 @@ void* memset(void* ptr, int value, size_t num)
 
 void* memcpy(void* dest, const void* src, size_t num)
 {
-	asm("repz movsb"
+	__asm__("repz movsb"
 			: /* no output */
 			: "S" (src), "D" (dest), "c" (num)
 			: /* no clobber */);

@@ -44,7 +44,7 @@ int rvid_init(void* base, int width, int height)
 int rvid_clrscr()
 {
 	ASSERT_INIT();
-	asm volatile("repz stosw"
+	__asm__ volatile("repz stosw"
 			: /* no output */
 			: "c" (video_cols * video_rows),
 			  "D" (video_base),
@@ -165,7 +165,7 @@ int rvid_printf(const char* f, ...)
 
 void _init_cursor()
 {
-	// We disable cursor
+	/* We disable cursor */
 	u8 csr = vga_read_crt(VGA_CRT_CSR);
 	vga_write_crt(VGA_CRT_CSR, csr | VGA_CSR_CD);
 }
@@ -201,7 +201,7 @@ size_t _putu(unsigned u, int radix)
 		rvid_putchar('0');
 		chars++;
 	} else {
-		// We find out, how big is this number
+		/* We find out, how big is this number */
 		while (u / j > radix) {
 			j *= radix;
 		}

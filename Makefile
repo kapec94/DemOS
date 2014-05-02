@@ -5,7 +5,8 @@ KERNEL=demos.exe
 
 CC=gcc
 CC_INCLUDES=-I$(SRC)
-CC_FLAGS=-c -m32 -g -Wall $(CC_INCLUDES)
+CC_FLAGS=-c -ansi -m32 -g -Wall $(CC_INCLUDES)
+GAS_FLAGS=-c -m32 -g -Wall $(CC_INCLUDES)
 LD=/usr/bin/ld
 LD_FLAGS=-T link.ld -m i386pe --file-alignment=0 -S
 PYTHON=C:/Python34/python.exe
@@ -33,7 +34,7 @@ configuration.%:
 	$(CC) $(CC_FLAGS) -o $(OUT)/$@ $<
 
 %.o: $(SRC)/%.S $(SRC)/configuration.h $(OUT)
-	$(CC) $(CC_FLAGS) -o $(OUT)/$@ $<
+	$(CC) $(GAS_FLAGS) -o $(OUT)/$@ $<
 
 $(KERNEL): $(OBJECTS) $(SRC)/configuration.h configuration.ld $(OUT)
 	$(LD) $(LD_FLAGS) -o $(OUT)/$@ $(foreach o,$(OBJECTS),$(OUT)/$(o))

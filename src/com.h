@@ -58,14 +58,14 @@
  * bit 2 of LCR.
  */
 #define COM_STOP_ONE	(0b00)
-#define COM_STOP_MORE	(0b01) // 1.5 for DATA_LEN == 5, 2 otherwise
+#define COM_STOP_MORE	(0b01) /* 1.5 for DATA_LEN == 5, 2 otherwise */
 
 /* Parity bits. */
-#define COM_PARITY_NONE	(0b000)		// no parity bit
-#define COM_PARITY_ODD	(0b001)		// makes character sum odd
-#define COM_PARITY_EVEN	(0b011)		// makes character sum even
-#define COM_PARITY_MARK	(0b101)		// always 1
-#define COM_PARITY_SPACE (0b111)	// always 0
+#define COM_PARITY_NONE	(0b000)		/* no parity bit */
+#define COM_PARITY_ODD	(0b001)		/* makes character sum odd */
+#define COM_PARITY_EVEN	(0b011)		/* makes character sum even */
+#define COM_PARITY_MARK	(0b101)		/* always 1 */
+#define COM_PARITY_SPACE (0b111)	/* always 0 */
 
 void com_get_ports(u16* out, size_t* len);
 int com_init_port(u16 port, u32 baud, u8 data_len, u8 stop_bit, u8 parity);

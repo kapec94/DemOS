@@ -12,14 +12,14 @@
 #define VGA_REG_MISCR	(0x03CC)
 #define VGA_REG_MISCW	(0x03C2)
 
-// CRT address register when I/OAS bit of VGA_REG_MISC register is 0
+/* CRT address register when I/OAS bit of VGA_REG_MISC register is 0 */
 #define VGA_REG_CRTA_0	(0x03B4)
 #define VGA_REG_CRTD_0	(0x03B5)
-// ...1
+/* ...1 */
 #define VGA_REG_CRTA_1	(0x03D4)
 #define VGA_REG_CRTD_1	(0x03D5)
 
-// CRT index registers
+/* CRT index registers */
 /* cursor start register */
 #define	VGA_CRT_CSR		(0x0A)
 /* cursor disable bit */
