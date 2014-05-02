@@ -20,19 +20,23 @@ void __attribute__((noreturn, cdecl)) kstart(int magic, struct multiboot_info_t*
 	rvid_clrscr();
 
 	if (magic != MB_MAGIC) {
-		printf("Multiboot magic is 0x%x != 0x%x! Halting.\n",
+		rvid_printf("Multiboot magic is 0x%x != 0x%x! Halting.\n",
 				magic, MB_MAGIC);
 		hlt();
 	}
 
-	printf("flags = %x\n\n", mb_info->flags);
+	rvid_printf("mb_info available at %x\n", mb_info);
+	rvid_printf("flags = %x\n", mb_info->flags);
 	if (get_bit(mb_info->flags, MB_MEM_FIELDS_AVAILABLE)) {
-		printf("mem fields available.\n");
-		printf("mem_lower = %d\nmem_upper = %d\n", mb_info->mem_lower, mb_info->mem_upper);
+		rvid_printf("mem fields available.\n");
+		rvid_printf("mem_lower = %d\nmem_upper = %d\n", mb_info->mem_lower, mb_info->mem_upper);
 	}
 	if (get_bit(mb_info->flags, MB_MMAP_INFO_AVAILABLE)) {
-		printf("mmap fields available.\n");
-
+		rvid_printf("mmap fields available.\n");
+	}
+	if (get_bit(mb_info->flags, MB_VBE_INFO_AVAILABLE)) {
+		rvid_printf("VBE info available.\n");
+		rvid_printf("vbe_mode = %x\n", mb_info->vbe_mode);
 	}
 
 	while (1) {

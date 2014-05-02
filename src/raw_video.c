@@ -15,6 +15,11 @@
 #define ASSERT_INIT()		if (video_ptr == NULL) return E_NO
 
 static void _init_cursor();
+
+static void _debug(const char* str);
+static void _debugf(const char* format, ...);
+
+static int _is_format_char(char c);
 static size_t _puti(int i, int radix, int sign);
 static size_t _putu(unsigned u, int radix);
 
@@ -24,7 +29,7 @@ static u16* video_base = NULL;
 static u32 video_cols = 0;
 static u32 video_rows = 0;
 
-static u8 video_attr = RVID_ATTR(COLOR_LGRAY, COLOR_BLACK);
+static u16 video_attr = RVID_ATTR(COLOR_LGRAY, COLOR_BLACK);
 
 int rvid_init(void* base, int width, int height)
 {
@@ -124,13 +129,30 @@ int rvid_puts(const char* s)
 int rvid_vprintf(const char* f, va_list va)
 {
 	int chars = 0;
+
+	int print_format;
+	int var_len;
+
 	while (*f != 0) {
+		var_len = 32;
+		print_format = 0;
+
 		if (*f == '%') {
-			switch (*++f) {
+			print_format = 1;
+			while (!_is_format_char(*++f)) {
+				switch (*f) {
+				case 'h':
+					var_len = var_len / 2;
+					if (var_len < 8) var_len = 8;
+					break;
+				}
+			}
+		}
+		if (print_format) {
+			switch (*f) {
 			case 's':
 				chars += rvid_puts(va_arg(va, const char*));
 				break;
-			case 'i':
 			case 'd':
 				chars += _puti(va_arg(va, int), 10, 0);
 				break;
@@ -142,6 +164,7 @@ int rvid_vprintf(const char* f, va_list va)
 				break;
 			}
 			++f;
+			print_format = 0;
 		}
 		else {
 			rvid_putchar(*f++);
@@ -161,6 +184,27 @@ int rvid_printf(const char* f, ...)
 
 	va_end(va);
 	return chars;
+}
+
+void _debug(const char* str)
+{
+	u16 attr = rvid_getattr();
+	rvid_setattr(RVID_ATTR(COLOR_RED, COLOR_BLACK));
+
+	rvid_puts(str);
+
+	rvid_setattr(attr);
+}
+
+void _debugf(const char* format, ...)
+{
+	va_list va;
+	u16 attr = rvid_getattr();
+
+	va_start(va, format);
+	rvid_setattr(RVID_ATTR(COLOR_RED, COLOR_BLACK));
+	rvid_vprintf(format, va);
+	rvid_setattr(attr);
 }
 
 void _init_cursor()
@@ -202,11 +246,11 @@ size_t _putu(unsigned u, int radix)
 		chars++;
 	} else {
 		/* We find out, how big is this number */
-		while (u / j > radix) {
+		while (u / j >= radix) {
 			j *= radix;
 		}
 
-		while (u != 0) {
+		while (j != 0) {
 			n = u / j;
 			u = u % j;
 			j /= radix;
@@ -217,4 +261,17 @@ size_t _putu(unsigned u, int radix)
 	}
 
 	return chars;
+}
+
+int _is_format_char(char c)
+{
+	switch (c) {
+	case 's':
+	case 'd':
+	case 'x':
+	case 'o':
+		return 1;
+	default:
+		return 0;
+	}
 }
