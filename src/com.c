@@ -20,7 +20,7 @@ int com_init_port(u16 port, u32 baud, u8 data_len, u8 stop_bit, u8 parity)
 	div = _base_baud / baud;
 	if (div * baud != _base_baud) {
 		/* baud is not a divider of base baud rate. */
-		return E_VAL;
+		return E_NO;
 	}
 
 	lcr = _get_reg(port, COM_REG_LCR);

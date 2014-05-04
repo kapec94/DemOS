@@ -12,7 +12,7 @@ LD=/usr/bin/ld
 LD_FLAGS=-T link.ld -m i386pe
 PYTHON=C:/Python34/python.exe
 
-OBJECTS=header.o main.o string.o raw_video.o cpu.o com.o bda.o vga.o gdb_impl.o
+OBJECTS=header.o main.o string.o raw_video.o cpu.o gdt.o com.o bda.o vga.o gdb_impl.o 
 FILES=$(OUT)/$(KERNEL) $(OUT)/$(KERNEL_DIRTY) \
 	$(foreach o,$(OBJECTS),$(OUT)/$(o)) \
 	configuration.ld $(SRC)/configuration.h
@@ -43,7 +43,7 @@ $(KERNEL_DIRTY): $(OBJECTS) $(SRC)/configuration.h configuration.ld $(OUT)
 	$(LD) $(LD_FLAGS) -o $(OUT)/$@ $(foreach o,$(OBJECTS),$(OUT)/$(o))
 
 $(KERNEL): $(KERNEL_DIRTY)
-	objcopy -S -O elf32-i386 $(OUT)/$< $(OUT)/$@
+	objcopy -g -O elf32-i386 $(OUT)/$< $(OUT)/$@
 
 all: $(KERNEL)
 

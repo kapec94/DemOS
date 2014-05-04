@@ -31,11 +31,33 @@ static inline u8 in(u16 port)
 	return ret;
 }
 
-static inline void hlt()
-{
-	__asm__ volatile("hlt");
-}
+#define hlt() __asm__ volatile("hlt")
+/* Undefined instruction. It is meant to crash the kernel. */
+#define ud2() __asm__ volatile("ud2")
 
-void cpu_setup_gdt();
+#define lgdt(gdt) \
+		__asm__ volatile("lgdt %0" \
+				: /* no output */ \
+				: "m" ((gdt)) \
+				: /* no clobber */)
+#define set_cs(cs) \
+		__asm__ volatile( \
+				"ljmp %0, $.fake_label\n\t" \
+				".fake_label:" \
+				: /* no output */ \
+				: "n" (cs) \
+				: /* no clobber */)
+
+#define set_ds(ds) \
+		__asm__ volatile( \
+				"mov %0, %%eax\n\t" \
+				"mov %%ax, %%ds\n\t" \
+				"mov %%ax, %%es\n\t" \
+				"mov %%ax, %%fs\n\t" \
+				"mov %%ax, %%gs\n\t" \
+				"mov %%ax, %%ss" \
+				: /* no output */ \
+				: "n" (ds) \
+				: "eax")
 
 #endif /* CPU_H_ */

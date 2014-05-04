@@ -19,6 +19,7 @@ static void _init_cursor();
 static void _debug(const char* str);
 static void _debugf(const char* format, ...);
 
+static u64 _va_next(va_list*, size_t bits);
 static int _is_format_char(char c);
 static size_t _puti(int i, int radix, int sign);
 static size_t _putu(unsigned u, int radix);
@@ -93,7 +94,7 @@ int rvid_setpos(int x, int y)
 	return S_OK;
 }
 
-int rvid_putchar(u8 c)
+int rvid_putchar(int c)
 {
 	ASSERT_INIT();
 
@@ -131,21 +132,13 @@ int rvid_vprintf(const char* f, va_list va)
 	int chars = 0;
 
 	int print_format;
-	int var_len;
 
 	while (*f != 0) {
-		var_len = 32;
 		print_format = 0;
 
 		if (*f == '%') {
 			print_format = 1;
 			while (!_is_format_char(*++f)) {
-				switch (*f) {
-				case 'h':
-					var_len = var_len / 2;
-					if (var_len < 8) var_len = 8;
-					break;
-				}
 			}
 		}
 		if (print_format) {
@@ -154,13 +147,13 @@ int rvid_vprintf(const char* f, va_list va)
 				chars += rvid_puts(va_arg(va, const char*));
 				break;
 			case 'd':
-				chars += _puti(va_arg(va, int), 10, 0);
+				chars += _puti(_va_next(&va, 32), 10, 0);
 				break;
 			case 'o':
-				chars += _putu(va_arg(va, unsigned), 8);
+				chars += _putu(_va_next(&va, 32), 8);
 				break;
 			case 'x':
-				chars += _putu(va_arg(va, unsigned), 16);
+				chars += _putu(_va_next(&va, 32), 16);
 				break;
 			}
 			++f;
@@ -271,6 +264,18 @@ int _is_format_char(char c)
 	case 'x':
 	case 'o':
 		return 1;
+	default:
+		return 0;
+	}
+}
+
+u64 _va_next(va_list* va, size_t bits)
+{
+	switch (bits) {
+	case 32:
+		return va_arg(*va, int);
+	case 64:
+		return va_arg(*va, long long int);
 	default:
 		return 0;
 	}

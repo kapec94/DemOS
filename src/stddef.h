@@ -21,8 +21,7 @@ typedef u16					wint_t;
 #define inline __inline__
 #endif /* __STRICT_ANSI__ */
 
-#define S_OK	0
-#define E_NO	1
-#define E_VAL	2
+#define S_OK	1
+#define E_NO	0
 
 #endif /* STDDEF_H_ */

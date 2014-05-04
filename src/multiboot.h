@@ -117,10 +117,10 @@ struct syms_elf_t {
 
 struct mmap_entry_t {
 	u32		size;
-	void*	base_addr;
-	u32		length;
+	u64		base_addr;
+	u64		length;
 	u32		type;
-};
+} __attribute__((packed));
 
 #endif /* __ASSEMBLER__ */
 
