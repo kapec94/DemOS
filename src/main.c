@@ -10,10 +10,12 @@
 #include <com.h>
 #include <vga.h>
 #include <raw_video.h>
-#include <gdb_impl.h>
+#include <interrupts.h>
 
 #define SEGMENT_PACK_SIZE	0x10
 #define GDT_SIZE			0x1FF
+
+#define IDT_SIZE			0x100
 
 /* stack segment size - 8kB */
 #define SS_SIZE 0x2000
@@ -24,10 +26,14 @@
 
 static size_t _init_gdt_mmap(void* base, size_t length);
 static void _init_gdt_memfields(size_t lower, size_t upper);
+static void _init_idt();
 
 static void _test_gdt_api();
 
 struct gdt_entry_t global_descriptor_table[GDT_SIZE];
+struct idt_entry_t global_interrupts_table[IDT_SIZE];
+
+struct table_descriptor_t idt_descriptor;
 
 void __attribute__((noreturn, cdecl)) kstart(int magic, struct multiboot_info_t* mb_info)
 {
@@ -63,6 +69,17 @@ void __attribute__((noreturn, cdecl)) kstart(int magic, struct multiboot_info_t*
 		_init_gdt_memfields(mb_info->mem_lower, mb_info->mem_upper);
 	}
 
+	rvid_printf("Setting up IDT...\n");
+	_init_idt();
+
+	rvid_printf("LGDT, LIDT\n");
+	lgdt(global_descriptor_table);
+	set_cs(0x08);
+	set_ds(0x10);
+
+	lidt(idt_descriptor);
+	sti();
+
 	while (1) {
 		hlt();
 	}
@@ -70,12 +87,15 @@ void __attribute__((noreturn, cdecl)) kstart(int magic, struct multiboot_info_t*
 
 void _prepare_gdt(size_t* start)
 {
-	/* first entry we'll actually set to contain the GDT descriptor. */
-	gdt_null_entry(&global_descriptor_table[0]);
+	size_t i = 0;
+	for (i = 0; i < GDT_SIZE; i++) {
+		gdt_null_entry(&global_descriptor_table[i]);
+	}
 
-	gdt_descriptor(global_descriptor_table,
+	/* first entry we'll actually set to contain the GDT descriptor. */
+	table_descriptor(global_descriptor_table,
 			GDT_SIZE * sizeof(struct gdt_entry_t),
-			(struct gdt_descriptor_t*)&global_descriptor_table[0]);
+			(struct table_descriptor_t*)&global_descriptor_table[0]);
 
 	/* second and third entries contain 1:1 mapping of address space */
 	gdt_pack_entry((void*)0x00000000, 0xFFFFF,
@@ -83,7 +103,7 @@ void _prepare_gdt(size_t* start)
 				GDT_AB_CODE_EXECUTABLE,
 				GDT_AB_NONCONFORMING,
 				GDT_AB_CODE_SEGMENT,
-				GDT_AB_PRIV_KERNEL),
+				PRIV_KERNEL),
 			gdt_flags(
 				GDT_FLAGS_GRANURALITY,
 				GDT_FLAGS_32PM),
@@ -93,7 +113,7 @@ void _prepare_gdt(size_t* start)
 				GDT_AB_DATA_WRITABLE,
 				GDT_AB_EXPAND_UP,
 				GDT_AB_DATA_SEGMENT,
-				GDT_AB_PRIV_KERNEL),
+				PRIV_KERNEL),
 			gdt_flags(
 				GDT_FLAGS_GRANURALITY,
 				GDT_FLAGS_32PM),
@@ -155,7 +175,7 @@ size_t _init_gdt_mmap(void* base, size_t length)
 						GDT_AB_DATA_WRITABLE,
 						GDT_AB_EXPAND_DOWN,
 						GDT_AB_DATA_SEGMENT,
-						GDT_AB_PRIV_KERNEL),
+						PRIV_KERNEL),
 					gdt_flags(
 						GDT_FLAGS_NO_GRANURALITY,
 						GDT_FLAGS_32PM),
@@ -166,7 +186,7 @@ size_t _init_gdt_mmap(void* base, size_t length)
 						GDT_AB_CODE_EXECUTABLE,
 						GDT_AB_NONCONFORMING,
 						GDT_AB_CODE_SEGMENT,
-						GDT_AB_PRIV_KERNEL),
+						PRIV_KERNEL),
 					gdt_flags(
 						GDT_FLAGS_NO_GRANURALITY,
 						GDT_FLAGS_32PM),
@@ -177,7 +197,7 @@ size_t _init_gdt_mmap(void* base, size_t length)
 						GDT_AB_DATA_READABLE,
 						GDT_AB_EXPAND_UP,
 						GDT_AB_DATA_SEGMENT,
-						GDT_AB_PRIV_KERNEL),
+						PRIV_KERNEL),
 					gdt_flags(
 						GDT_FLAGS_NO_GRANURALITY,
 						GDT_FLAGS_32PM),
@@ -191,11 +211,6 @@ size_t _init_gdt_mmap(void* base, size_t length)
 			break;
 		}
 	}
-
-	lgdt(global_descriptor_table);
-	set_cs(0x08);
-	set_ds(0x10);
-
 	return loaded;
 }
 
@@ -204,6 +219,43 @@ void _init_gdt_memfields(size_t lower, size_t upper)
 	rvid_printf("_init_gdt_memfields not yet implemented.\n");
 	hlt();
 	ud2();
+}
+
+void _init_idt()
+{
+	size_t i = 0;
+	struct int_entry_t* int_entry;
+
+	for (i = 0; i < IDT_SIZE; i++) {
+		idt_null_entry(&global_interrupts_table[i]);
+	}
+
+	/*
+	 * Filling up exception handlers entries (int <= 0x10)
+	 * Currently commented out, since we don't probably want
+	 * to quiet every exception we don't handle (let it triple-fault)
+	 *
+	 */
+	/*
+	for (i = 0; i < EXCEPTION_COUNT; i++) {
+		idt_pack_entry(ISR(dummy_handler), 0x08,
+				idt_type(IDT_GATE_32BIT_INT, PRIV_KERNEL),
+				&global_interrupts_table[i]);
+		i++;
+	}
+	*/
+
+	int_entry = &exception_handlers[0];
+	while (int_entry->i != -1) {
+		idt_pack_entry(int_entry->base, 0x08,
+				idt_type(IDT_GATE_32BIT_INT, PRIV_KERNEL),
+				&global_interrupts_table[int_entry->i]);
+		int_entry ++;
+	}
+
+	table_descriptor(global_interrupts_table,
+			IDT_SIZE * sizeof(struct idt_entry_t),
+			&idt_descriptor);
 }
 
 #define ASSERT(test) if (!(test)) rvid_printf("FAIL at line %d\n", __LINE__)

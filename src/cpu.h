@@ -13,23 +13,28 @@
 #define clear_bit(m, n) (m &= ~(1 << n))
 #define toggle_bit(m, n) (m ^= (1 << n))
 
-static inline void out(u16 port, u8 val)
-{
-	__asm__ volatile("out %0, %1"
-		: /* no output operands */
-		: "a" (val), "d" (port)
-		: );
-}
+#define out(port, val) \
+	__asm__ volatile("out %0, %1" \
+		: /* no output operands */ \
+		: "a" ((u8)(val)), "d" ((u16)(port)) \
+		: )
 
-static inline u8 in(u16 port)
+/* we out to so-called 'null port' */
+#define io_wait() out(0x80, 0x00)
+
+/* It has to be a function */
+static inline u8 in(u32 port)
 {
 	u8 ret = 0;
 	__asm__ volatile("in %1, %0"
 		: "=a" (ret)
-		: "d" (port)
+		: "d" ((u16)port)
 		:);
 	return ret;
 }
+
+#define sti() __asm__ volatile("sti")
+#define cli() __asm__ volatile("cli")
 
 #define hlt() __asm__ volatile("hlt")
 /* Undefined instruction. It is meant to crash the kernel. */
@@ -40,6 +45,13 @@ static inline u8 in(u16 port)
 				: /* no output */ \
 				: "m" ((gdt)) \
 				: /* no clobber */)
+
+#define lidt(idt) \
+		__asm__ volatile("lidt %0" \
+				: /* no output */ \
+				: "m" ((idt)) \
+				: /* no clobber */)
+
 #define set_cs(cs) \
 		__asm__ volatile( \
 				"ljmp %0, $.fake_label\n\t" \
