@@ -12,7 +12,7 @@ LD=/usr/bin/ld
 LD_FLAGS=-T link.ld -m i386pe
 PYTHON=C:/Python34/python.exe
 
-OBJECTS=header.o main.o string.o raw_video.o cpu.o gdt.o com.o bda.o vga.o gdb_impl.o \
+OBJECTS=header.o main.o string.o raw_video.o cpu.o gdt.o com.o bda.o vga.o \
 	interrupts_isr.o interrupts.o pic.o ps2.o
 
 FILES=$(OUT)/$(KERNEL) $(OUT)/$(KERNEL_DIRTY) \
