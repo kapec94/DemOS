@@ -16,3 +16,6 @@ isr dummy_handler
 isr int0_div_error
 isr int3_breakpoint
 isr int13_triple_fault
+
+isr int_timer
+isr int_keyboard

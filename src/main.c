@@ -9,13 +9,22 @@
 #include <gdt.h>
 #include <com.h>
 #include <vga.h>
+#include <pic.h>
 #include <raw_video.h>
 #include <interrupts.h>
 
+/* The address space is ordered in segment packs. Every process has its stack
+ * segment, code segment and data segment, which sizes are configurable through
+ * below defines.
+ */
 #define SEGMENT_PACK_SIZE	0x10
-#define GDT_SIZE			0x1FF
 
+/* Defines how many entries can contain the following table. */
+#define GDT_SIZE			0x1FF
 #define IDT_SIZE			0x100
+
+/* offset of first hardware interrupt handler in IDT */
+#define IRQ_OFFSET			0x20
 
 /* stack segment size - 8kB */
 #define SS_SIZE 0x2000
@@ -27,6 +36,7 @@
 static size_t _init_gdt_mmap(void* base, size_t length);
 static void _init_gdt_memfields(size_t lower, size_t upper);
 static void _init_idt();
+static void _init_interrupts();
 
 static void _test_gdt_api();
 
@@ -50,6 +60,10 @@ void __attribute__((noreturn, cdecl)) kstart(int magic, struct multiboot_info_t*
 		ud2();
 	}
 
+	rvid_printf("Initializing PIC...\n");
+	pic_remap(IRQ_OFFSET, IRQ_OFFSET + 8);
+	pic_mask_irqs();
+
 	if (GDT_SIZE == 0) {
 		rvid_printf("GDT_SIZE == 0. Prepare for crash.\n");
 	}
@@ -57,7 +71,7 @@ void __attribute__((noreturn, cdecl)) kstart(int magic, struct multiboot_info_t*
 		rvid_printf("GDT_SIZE > 0x2000. Prepare for undefined behavior.\n");
 	}
 
-	_test_gdt_api();
+	/* _test_gdt_api(); */
 
 	if (get_bit(mb_info->flags, MB_MMAP_INFO_AVAILABLE)) {
 		rvid_printf("Setting up GDT using mmap entries...\n");
@@ -71,6 +85,7 @@ void __attribute__((noreturn, cdecl)) kstart(int magic, struct multiboot_info_t*
 
 	rvid_printf("Setting up IDT...\n");
 	_init_idt();
+	_init_interrupts();
 
 	rvid_printf("LGDT, LIDT\n");
 	lgdt(global_descriptor_table);
@@ -81,6 +96,7 @@ void __attribute__((noreturn, cdecl)) kstart(int magic, struct multiboot_info_t*
 	sti();
 
 	while (1) {
+		rvid_printf("Halting...\n");
 		hlt();
 	}
 }
@@ -224,26 +240,19 @@ void _init_gdt_memfields(size_t lower, size_t upper)
 void _init_idt()
 {
 	size_t i = 0;
-	struct int_entry_t* int_entry;
 
 	for (i = 0; i < IDT_SIZE; i++) {
 		idt_null_entry(&global_interrupts_table[i]);
 	}
 
-	/*
-	 * Filling up exception handlers entries (int <= 0x10)
-	 * Currently commented out, since we don't probably want
-	 * to quiet every exception we don't handle (let it triple-fault)
-	 *
-	 */
-	/*
-	for (i = 0; i < EXCEPTION_COUNT; i++) {
-		idt_pack_entry(ISR(dummy_handler), 0x08,
-				idt_type(IDT_GATE_32BIT_INT, PRIV_KERNEL),
-				&global_interrupts_table[i]);
-		i++;
-	}
-	*/
+	table_descriptor(global_interrupts_table,
+			IDT_SIZE * sizeof(struct idt_entry_t),
+			&idt_descriptor);
+}
+
+void _init_interrupts()
+{
+	struct int_entry_t* int_entry;
 
 	int_entry = &exception_handlers[0];
 	while (int_entry->i != -1) {
@@ -253,9 +262,14 @@ void _init_idt()
 		int_entry ++;
 	}
 
-	table_descriptor(global_interrupts_table,
-			IDT_SIZE * sizeof(struct idt_entry_t),
-			&idt_descriptor);
+	int_entry = &interrupt_handlers[0];
+	while (int_entry->i != -1) {
+		idt_pack_entry(int_entry->base, 0x08,
+				idt_type(IDT_GATE_32BIT_INT, PRIV_KERNEL),
+				&global_interrupts_table[IRQ_OFFSET + int_entry->i]);
+		pic_unmask_irq(int_entry->i);
+		int_entry ++;
+	}
 }
 
 #define ASSERT(test) if (!(test)) rvid_printf("FAIL at line %d\n", __LINE__)

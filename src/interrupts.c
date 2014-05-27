@@ -14,6 +14,12 @@ struct int_entry_t exception_handlers[] = {
 		{ i: -1, base: NULL }
 };
 
+struct int_entry_t interrupt_handlers[] = {
+		{ i: 0, base: ISR(int_timer) },
+		{ i: 1, base: ISR(int_keyboard) },
+		{ i: -1, base: NULL }
+};
+
 void dummy_handler()
 {
 
@@ -37,4 +43,14 @@ void int13_triple_fault()
 	rvid_printf("TRIPLE FAULT\n");
 	cli();
 	hlt();
+}
+
+void int_timer()
+{
+	rvid_printf("TIMER\n");
+}
+
+void int_keyboard()
+{
+	rvid_printf("KEYBOARD\n");
 }
