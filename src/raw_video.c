@@ -179,27 +179,6 @@ int rvid_printf(const char* f, ...)
 	return chars;
 }
 
-void _debug(const char* str)
-{
-	u16 attr = rvid_getattr();
-	rvid_setattr(RVID_ATTR(COLOR_RED, COLOR_BLACK));
-
-	rvid_puts(str);
-
-	rvid_setattr(attr);
-}
-
-void _debugf(const char* format, ...)
-{
-	va_list va;
-	u16 attr = rvid_getattr();
-
-	va_start(va, format);
-	rvid_setattr(RVID_ATTR(COLOR_RED, COLOR_BLACK));
-	rvid_vprintf(format, va);
-	rvid_setattr(attr);
-}
-
 void _init_cursor()
 {
 	/* We disable cursor */

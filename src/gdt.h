@@ -88,6 +88,11 @@ struct idt_type_t {
 	u8		present : 1;
 } __attribute__((packed));
 
+size_t gdt_init(void* mmap_base, size_t mmap_length,
+		struct gdt_entry_t* global_descriptor_table);
+void idt_init(struct idt_entry_t* global_interrupts_table,
+		struct table_descriptor_t* idt_desc);
+
 struct gdt_entry_t* gdt_pack_entry(void* base, u32 limit, u32 access_byte,
 		u32 flags, struct gdt_entry_t* out);
 struct gdt_entry_t* gdt_null_entry(struct gdt_entry_t* out);

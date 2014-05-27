@@ -16,6 +16,25 @@ config = dict(
 	
 	# Memory address at which stack will be set up.
 	stack_base='0x00104000',
+
+	# The address space is ordered in segment packs. Every process has its stack
+	# segment, code segment and data segment, which sizes are configurable through
+	# below defines.
+	segment_pack_size='0x10',
+
+	# stack segment size - 8kB
+	ss_size='0x2000',
+	# code segment size - 32kB
+	cs_size='0x8000',
+	# data segment size - 32kB
+	ds_size='0x8000',
+
+	# Defines how many entries can contain the following table.
+	gdt_size='0x1FF',
+	idt_size='0x100',
+
+	# offset of first hardware interrupt handler in IDT
+	irq_offset='0x20',
 )
 
 ## CONFIGURATION ENDS HERE

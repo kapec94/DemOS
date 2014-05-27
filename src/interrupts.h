@@ -21,12 +21,14 @@ struct int_entry_t {
 
 typedef void(*int_proc)(void);
 
+void interrupts_init(struct idt_entry_t* global_interrupts_table);
+void interrupts_setup(size_t i, void* base);
+
 DECL_HANDLER(dummy_handler);
 DECL_HANDLER(int0_div_error);
 DECL_HANDLER(int3_breakpoint);
 DECL_HANDLER(int13_triple_fault);
 
-DECL_HANDLER(int_timer);
 DECL_HANDLER(int_keyboard);
 
 extern struct int_entry_t exception_handlers[];
