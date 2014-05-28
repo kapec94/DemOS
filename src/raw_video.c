@@ -18,6 +18,7 @@ static void _init_cursor();
 
 static u64 _va_next(va_list*, size_t bits);
 static int _is_format_char(char c);
+static size_t _putc(int c);
 static size_t _puti(int i, int radix, int sign);
 static size_t _putu(unsigned u, int radix);
 
@@ -109,7 +110,7 @@ int rvid_putchar(int c)
 	case '\0':
 		break;
 	default:
-		*video_ptr++ = video_attr << 8 | c;
+		*video_ptr++ = video_attr << 8 | (u8)c;
 		break;
 	}
 
@@ -142,6 +143,9 @@ int rvid_vprintf(const char* f, va_list va)
 			switch (*f) {
 			case 's':
 				chars += rvid_puts(va_arg(va, const char*));
+				break;
+			case 'c':
+				chars += _putc(va_arg(va, int));
 				break;
 			case 'd':
 				chars += _puti(_va_next(&va, 32), 10, 0);
@@ -181,6 +185,14 @@ void _init_cursor()
 	/* We disable cursor */
 	u8 csr = vga_read_crt(VGA_CRT_CSR);
 	vga_write_crt(VGA_CRT_CSR, csr | VGA_CSR_CD);
+}
+
+size_t _putc(int c)
+{
+	rvid_putchar(c);
+
+	if (c == '\0') return 0;
+	else return 1;
 }
 
 char* digits = "0123456789ABCDEF";
@@ -239,6 +251,7 @@ int _is_format_char(char c)
 	case 'd':
 	case 'x':
 	case 'o':
+	case 'c':
 		return 1;
 	default:
 		return 0;

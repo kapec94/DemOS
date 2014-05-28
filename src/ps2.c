@@ -7,26 +7,6 @@
 #include <raw_video.h>
 #include "ps2.h"
 
-static inline u8 ps2_read_status()
-{
-	return in(PS2_STATUS_PORT);
-}
-
-static inline u8 ps2_read_data()
-{
-	return in(PS2_DATA_PORT);
-}
-
-static inline void ps2_write_data(u8 data)
-{
-	out(PS2_DATA_PORT, data);
-}
-
-static inline void ps2_write_cmd(u8 cmd)
-{
-	out(PS2_CMD_PORT, cmd);
-}
-
 u32 has_port1;
 u32 has_port2;
 
@@ -89,7 +69,7 @@ u32 ps2_init()
 		return E_NO;
 	}
 
-	/* Reenable ports */
+	/*
 	if (has_port1) {
 		rvid_printf("  Enabling port 1...\n");
 		ps2_write_cmd(PS2_CMD_ENABLE_PORT1);
@@ -98,6 +78,7 @@ u32 ps2_init()
 		rvid_printf("  Enabling port 2...\n");
 		ps2_write_cmd(PS2_CMD_ENABLE_PORT2);
 	}
+	*/
 
 	return S_OK;
 }
@@ -236,6 +217,82 @@ u32 ps2_write_ccb(u8 ccb)
 u8 ps2_null_ccb()
 {
 	return 0b00110100; /* Default CCB with everything disabled */
+}
+
+u32 ps2_enable(u32 port)
+{
+	if (port == PS2_PORT1) {
+		ps2_write_cmd(PS2_CMD_ENABLE_PORT1);
+		return S_OK;
+	}
+	if (port == PS2_PORT2) {
+		ps2_write_cmd(PS2_CMD_ENABLE_PORT2);
+		return S_OK;
+	}
+
+	return E_NO;
+}
+
+u32 ps2_disable(u32 port)
+{
+	if (port == PS2_PORT1) {
+		ps2_write_cmd(PS2_CMD_DISABLE_PORT1);
+		return S_OK;
+	}
+	if (port == PS2_PORT2) {
+		ps2_write_cmd(PS2_CMD_DISABLE_PORT2);
+		return S_OK;
+	}
+
+	return E_NO;
+}
+
+u32 ps2_enable_int(u32 port)
+{
+	u8 ccb = 0;
+	if (ps2_read_ccb(&ccb) == E_NO) {
+		return E_NO;
+	}
+
+	if (port == PS2_PORT1) {
+		set_bit(ccb, PS2_CCB_FLAGS_PORT1_INT);
+	}
+	if (port == PS2_PORT2) {
+		set_bit(ccb, PS2_CCB_FLAGS_PORT2_INT);
+	}
+
+	return ps2_write_ccb(ccb);
+}
+
+u32 ps2_disable_int(u32 port)
+{
+	u8 ccb = 0;
+	if (ps2_read_ccb(&ccb) == E_NO) {
+		return E_NO;
+	}
+
+	if (port == PS2_PORT1) {
+		clear_bit(ccb, PS2_CCB_FLAGS_PORT1_INT);
+	}
+	if (port == PS2_PORT2) {
+		clear_bit(ccb, PS2_CCB_FLAGS_PORT2_INT);
+	}
+
+	return ps2_write_ccb(ccb);
+}
+
+u32 ps2_reset_port(u32 port)
+{
+	u32 result = 0;
+	u8 data = 0;
+
+	ps2_send_data(port, PS2_DEVICE_RESET);
+	result = ps2_recv_data(&data);
+	if (result == E_NO || data != PS2_DEVICE_RESPONSE_ACK) {
+		return E_NO;
+	} else {
+		return S_OK;
+	}
 }
 
 u32 ps2_has_port1()

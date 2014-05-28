@@ -68,6 +68,7 @@
 
 #define PS2_DEVICE_IDENTIFY			0xF2
 #define PS2_DEVICE_DISABLE_SCANNING	0xF5
+#define PS2_DEVICE_RESET			0xFF
 
 #define PS2_DEVICE_RESPONSE_ACK		0xFA
 
@@ -108,5 +109,32 @@ u32 ps2_send_data(u32 port, u8 data);
 
 u32 ps2_wait_inbuf(u32 timeout);
 u32 ps2_wait_outbuf(u32 timeout);
+
+u32 ps2_enable(u32 port);
+u32 ps2_disable(u32 port);
+u32 ps2_enable_int(u32 port);
+u32 ps2_disable_int(u32 port);
+
+u32 ps2_reset_port(u32 port);
+
+static inline u8 ps2_read_status()
+{
+	return in(PS2_STATUS_PORT);
+}
+
+static inline u8 ps2_read_data()
+{
+	return in(PS2_DATA_PORT);
+}
+
+static inline void ps2_write_data(u8 data)
+{
+	out(PS2_DATA_PORT, data);
+}
+
+static inline void ps2_write_cmd(u8 cmd)
+{
+	out(PS2_CMD_PORT, cmd);
+}
 
 #endif /* PS2_H_ */

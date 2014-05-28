@@ -3,17 +3,21 @@
  *
  */
 
-#include <configuration.h>
 #include <stddef.h>
+
+#include <configuration.h>
 #include <multiboot.h>
 #include <cpu.h>
-#include <gdt.h>
-#include <com.h>
+
 #include <vga.h>
-#include <pic.h>
 #include <raw_video.h>
+
+#include <pic.h>
+#include <gdt.h>
 #include <interrupts.h>
+
 #include <ps2.h>
+#include <keyboard.h>
 
 struct gdt_entry_t global_descriptor_table[GDT_SIZE];
 struct idt_entry_t global_interrupts_table[IDT_SIZE];
@@ -22,7 +26,7 @@ struct table_descriptor_t idt_descriptor;
 
 void __attribute__((noreturn, cdecl)) kstart(int magic, struct multiboot_info_t* mb_info)
 {
-	u32 result = 0;
+	u32 result = 0, port = 0;
 
 	vga_init();
 
@@ -76,34 +80,21 @@ void __attribute__((noreturn, cdecl)) kstart(int magic, struct multiboot_info_t*
 		ud2();
 	}
 
-	rvid_printf("Detecting PS/2 device 1... ");
-	if (ps2_detect(PS2_PORT1, &result) == S_OK) {
-		switch (result) {
-		case PS2_DEVTYPE_KBD:
-		case PS2_DEVTYPE_KBD_ANCIENT:
-		case PS2_DEVTYPE_KBD_TRANS:
-			rvid_printf("Keyboard!\n");
-			break;
-		case PS2_DEVTYPE_MOUSE:
-		case PS2_DEVTYPE_MOUSE_SCROLL:
-		case PS2_DEVTYPE_MOUSE_5BUT:
-			rvid_printf("Mouse!\n");
+	port = PS2_PORT1;
+	if (!kbd_iskbd(port)) {
+		port = PS2_PORT2;
+		if (!kbd_iskbd(port)) {
+			rvid_printf("No keyboard connected!\n");
+			hlt();
+			ud2();
+		} else {
+			rvid_printf("Found keyboard at port 2\n");
 		}
+	} else {
+		rvid_printf("Found keyboard at port 1\n");
 	}
-	rvid_printf("Detecting PS/2 device 2... ");
-	if (ps2_detect(PS2_PORT2, &result) == S_OK) {
-		switch (result) {
-		case PS2_DEVTYPE_KBD:
-		case PS2_DEVTYPE_KBD_ANCIENT:
-		case PS2_DEVTYPE_KBD_TRANS:
-			rvid_printf("Keyboard!\n");
-			break;
-		case PS2_DEVTYPE_MOUSE:
-		case PS2_DEVTYPE_MOUSE_SCROLL:
-		case PS2_DEVTYPE_MOUSE_5BUT:
-			rvid_printf("Mouse!\n");
-		}
-	}
+
+	kbd_init(port);
 
 	sti();
 

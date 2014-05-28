@@ -8,6 +8,7 @@
 #include <gdt.h>
 #include <pic.h>
 #include <configuration.h>
+#include <keyboard.h>
 #include "interrupts.h"
 
 struct int_entry_t exception_handlers[] = {
@@ -77,5 +78,9 @@ void int13_triple_fault()
 
 void int_keyboard()
 {
-	rvid_printf("KEYBOARD\n");
+	u32 scan = kbd_scan_nopoll();
+	if (kbd_ispress(scan)) {
+		rvid_putchar(kbd_tocode(scan));
+	}
+	pic_eoi(1);
 }
