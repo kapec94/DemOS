@@ -16,9 +16,6 @@
 
 static void _init_cursor();
 
-static void _debug(const char* str);
-static void _debugf(const char* format, ...);
-
 static u64 _va_next(va_list*, size_t bits);
 static int _is_format_char(char c);
 static size_t _puti(int i, int radix, int sign);

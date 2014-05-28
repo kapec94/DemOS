@@ -13,6 +13,7 @@
 #include <pic.h>
 #include <raw_video.h>
 #include <interrupts.h>
+#include <ps2.h>
 
 struct gdt_entry_t global_descriptor_table[GDT_SIZE];
 struct idt_entry_t global_interrupts_table[IDT_SIZE];
@@ -21,6 +22,8 @@ struct table_descriptor_t idt_descriptor;
 
 void __attribute__((noreturn, cdecl)) kstart(int magic, struct multiboot_info_t* mb_info)
 {
+	u32 result = 0;
+
 	vga_init();
 
 	/* TODO: get video mode from mb_info instead of hard coded values. */
@@ -64,6 +67,44 @@ void __attribute__((noreturn, cdecl)) kstart(int magic, struct multiboot_info_t*
 	set_ds(0x10);
 
 	lidt(idt_descriptor);
+
+	rvid_printf("Initializing PS/2 controller...\n");
+	result = ps2_init();
+	if (result != S_OK) {
+		rvid_printf("Could not initialize PS/2! Error: %x\n", result);
+		hlt();
+		ud2();
+	}
+
+	rvid_printf("Detecting PS/2 device 1... ");
+	if (ps2_detect(PS2_PORT1, &result) == S_OK) {
+		switch (result) {
+		case PS2_DEVTYPE_KBD:
+		case PS2_DEVTYPE_KBD_ANCIENT:
+		case PS2_DEVTYPE_KBD_TRANS:
+			rvid_printf("Keyboard!\n");
+			break;
+		case PS2_DEVTYPE_MOUSE:
+		case PS2_DEVTYPE_MOUSE_SCROLL:
+		case PS2_DEVTYPE_MOUSE_5BUT:
+			rvid_printf("Mouse!\n");
+		}
+	}
+	rvid_printf("Detecting PS/2 device 2... ");
+	if (ps2_detect(PS2_PORT2, &result) == S_OK) {
+		switch (result) {
+		case PS2_DEVTYPE_KBD:
+		case PS2_DEVTYPE_KBD_ANCIENT:
+		case PS2_DEVTYPE_KBD_TRANS:
+			rvid_printf("Keyboard!\n");
+			break;
+		case PS2_DEVTYPE_MOUSE:
+		case PS2_DEVTYPE_MOUSE_SCROLL:
+		case PS2_DEVTYPE_MOUSE_5BUT:
+			rvid_printf("Mouse!\n");
+		}
+	}
+
 	sti();
 
 	rvid_printf("Done.\n");

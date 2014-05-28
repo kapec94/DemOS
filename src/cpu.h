@@ -33,6 +33,14 @@ static inline u8 in(u32 port)
 	return ret;
 }
 
+static inline u32 getticks()
+{
+	u32 ret;
+	__asm__ volatile("rdtsc"
+		: "=A" (ret));
+	return ret;
+}
+
 #define sti() __asm__ volatile("sti")
 #define cli() __asm__ volatile("cli")
 

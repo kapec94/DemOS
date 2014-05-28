@@ -38,6 +38,7 @@
 #define PS2_CMD_SELF_TEST		0xAA
 #define PS2_CMD_PORT1_TEST		0xAB
 #define PS2_CMD_PORT2_TEST		0xA9
+#define PS2_CMD_WRITE_PORT2		0xD4
 
 #define PS2_SELF_TEST_OK		0x55
 #define PS2_SELF_TEST_ERROR		0xFC
@@ -60,48 +61,36 @@
 #define PS2_CCB_FLAGS_PORT2_CLOCK	0x05
 #define PS2_CCB_FLAGS_PORT1_TRANS	0x06
 
-static inline u8 ps2_read_status()
-{
-	return in(PS2_STATUS_PORT);
-}
+/* For port specific ports */
+#define PS2_PORT1	0x00
+#define PS2_NO_PORT	PS2_PORT1
+#define PS2_PORT2	0x01
 
-static inline u8 ps2_read_data()
-{
-	while (get_bit(ps2_read_status(), PS2_STATUS_OUTB_FULL) == 0) {
-		io_wait();
-	}
-	return in(PS2_DATA_PORT);
-}
+#define PS2_DEVICE_IDENTIFY			0xF2
+#define PS2_DEVICE_DISABLE_SCANNING	0xF5
 
-static inline void ps2_write_data(u8 data)
-{
-	while (get_bit(ps2_read_status(), PS2_STATUS_INB_FULL) == 1) {
-		io_wait();
-	}
-	out(PS2_DATA_PORT, data);
-}
+#define PS2_DEVICE_RESPONSE_ACK		0xFA
 
-static inline void ps2_write_cmd(u8 cmd)
-{
-	while (get_bit(ps2_read_status(), PS2_STATUS_INB_FULL) == 1) {
-		io_wait();
-	}
-	out(PS2_CMD_PORT, cmd);
-}
+/* Ancient AT keyboard with translation enabled in the PS/Controller
+ * (not possible for the second PS/2 port) */
+#define PS2_DEVTYPE_KBD_ANCIENT		0x00
+/* Standard PS/2 mouse */
+#define PS2_DEVTYPE_MOUSE			0x01
+/* Mouse with scroll wheel */
+#define PS2_DEVTYPE_MOUSE_SCROLL	0x02
+/* 5-button mouse */
+#define PS2_DEVTYPE_MOUSE_5BUT		0x03
+/* MF2 keyboard with translation enabled in the PS/Controller
+ * (not possible for the second PS/2 port) */
+#define PS2_DEVTYPE_KBD_TRANS		0x04
+/* MF2 keyboard */
+#define PS2_DEVTYPE_KBD				0x05
 
 /* Read PS/2 controller configuration byte */
-static inline u8 ps2_read_ccb()
-{
-	out(PS2_CMD_PORT, PS2_CMD_READ_CCB);
-	return in(PS2_DATA_PORT);
-}
+u32 ps2_read_ccb(u8* ccb);
 
 /* Read PS/2 controller configuration byte */
-static inline void ps2_write_ccb(u8 ccb)
-{
-	ps2_write_cmd(PS2_CMD_WRITE_CCB);
-	ps2_write_data(ccb);
-}
+u32 ps2_write_ccb(u8 ccb);
 
 /* Initialize PS/2 ports for usage. Note that it actually doesn't check
  * for PS/2 existence and doesn't touch USB Legacy Support settings, so it may
@@ -111,10 +100,13 @@ u32 ps2_init();
 
 u8 ps2_null_ccb();
 
-u32 ps2_has_port1();
-u32 ps2_has_port2();
+u32 ps2_has_port(u32 port);
+u32 ps2_detect(u32 port, u32* type);
 
-void ps2_send_port1(u8 data);
-void ps2_send_port2(u8 data);
+u32 ps2_recv_data(u8* data);
+u32 ps2_send_data(u32 port, u8 data);
+
+u32 ps2_wait_inbuf(u32 timeout);
+u32 ps2_wait_outbuf(u32 timeout);
 
 #endif /* PS2_H_ */
