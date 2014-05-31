@@ -3,9 +3,10 @@
  *
  */
 
-#include <raw_video.h>
-#include <multiboot.h>
 #include <configuration.h>
+#include <multiboot.h>
+
+#include <conio.h>
 #include "gdt.h"
 
 static void _prepare_gdt(size_t* start,
@@ -244,23 +245,23 @@ int _find_mem(size_t mem, void* base, size_t length,
 	return E_NO;
 }
 
-#define ASSERT(test) if (!(test)) rvid_printf("FAIL at line %d\n", __LINE__)
+#define ASSERT(test) if (!(test)) cprintf("FAIL at line %d\n", __LINE__)
 void _test_gdt_api()
 {
 	struct gdt_entry_t entry;
 
-	rvid_printf("test_gdt_flags\n");
+	cprintf("test_gdt_flags\n");
 	ASSERT(gdt_flags(GDT_FLAGS_GRANURALITY, GDT_FLAGS_32PM) == 0b1100);
 	ASSERT(gdt_flags(GDT_FLAGS_GRANURALITY, GDT_FLAGS_16PM) == 0b1000);
 
-	rvid_printf("test_gdt_access_byte\n");
+	cprintf("test_gdt_access_byte\n");
 	ASSERT(gdt_access_byte(0, 0, 0, 0) == 0b10010000);
 	ASSERT(gdt_access_byte(1, 0, 0, 0) == 0b10010010);
 	ASSERT(gdt_access_byte(0, 1, 0, 0) == 0b10010100);
 	ASSERT(gdt_access_byte(0, 0, 1, 0) == 0b10011000);
 	ASSERT(gdt_access_byte(0, 0, 0, 0b10) == 0b11010000);
 
-	rvid_printf("test_gdt_pack_entry\n");
+	cprintf("test_gdt_pack_entry\n");
 	gdt_pack_entry((void*)0x11223344, 0x56677, 0x88, 0x9, &entry);
 	ASSERT(entry.limit0 == 0x6677);
 	ASSERT(entry.base0 == 0x3344);
@@ -271,5 +272,5 @@ void _test_gdt_api()
 	ASSERT(entry.base2 == 0x11);
 	ASSERT(*(u64*)&entry == 0x1195882233446677);
 
-	rvid_printf("Done.\n");
+	cprintf("Done.\n");
 }

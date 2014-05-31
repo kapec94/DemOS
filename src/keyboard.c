@@ -4,7 +4,11 @@
  */
 
 #include <ps2.h>
+#include <pic.h>
 #include "keyboard.h"
+
+#define KBD_PRESSED		0x01
+#define KBD_RELEASED	0x00
 
 #define KBD_CMD_SCANCODE	0xF0
 #define KBD_SCANCODE_GET	0x00
@@ -61,7 +65,7 @@ static const char* _codepage = \
 		"1234567890"	/* 2 - B */
 		"-=\x08\t"		/* C - F */
 		"qwertyuiop[]"	/* 10 - 1B */
-		"\r\x11"		/* 1C - 1D */
+		"\n\x11"		/* 1C - 1D */
 		"asdfghjkl;'`"	/* 1E - 29 */
 		"\x0E\\"		/* 2A - 2B */
 		"zxcvbnm,./"	/* 2C - 35 */
@@ -77,6 +81,17 @@ static const char* _codepage = \
 		"\x8E\x8F\x8C"	/* 50 - 52 */
 		"\xFF\0\0"		/* 53 - 55 */
 		"\0\x8A\x8B"	/* 56 - 58 */;
+
+static volatile u32 _codes_pressed[0x100];
+
+static volatile u32 _capslock;
+
+static volatile u32 _wait_next;
+static volatile u32 _next_char;
+
+static u32 _isletter(u32 code);
+static u32 _hasupper(u32 code);
+static u32 _uplow(u32 code);
 
 u32 kbd_init(u32 port)
 {
@@ -102,6 +117,51 @@ u32 kbd_init(u32 port)
 	return S_OK;
 }
 
+u32 kbd_scan_nopoll()
+{
+	return ps2_read_data();
+}
+
+u32 kbd_code_nopoll()
+{
+	u32 scan = kbd_scan_nopoll();
+	return _codepage[scan % 0x80];
+}
+
+u32 kbd_nextpress()
+{
+	u32 c = 0;
+
+	_wait_next = 1;
+	while (_next_char == '\0') nop();
+
+	c = _next_char;
+	_next_char = '\0';
+
+	return c;
+}
+
+u32 kbd_getch()
+{
+	u32 code = 0;
+
+	do {
+		code = kbd_nextpress();
+	} while (!kbd_isprintable(code));
+
+	if (kbd_ispressed(KBD_SCP_LSHIFT) || kbd_ispressed(KBD_SCP_RSHIFT)) {
+		if (_capslock == KBD_RELEASED && _hasupper(code)) {
+			code = _uplow(code);
+		}
+	} else {
+		if (_capslock == KBD_PRESSED && _hasupper(code)) {
+			code = _uplow(code);
+		}
+	}
+
+	return code;
+}
+
 u32 kbd_iskbd(u32 port)
 {
 	u32 result, type;
@@ -116,14 +176,25 @@ u32 kbd_iskbd(u32 port)
 			type == PS2_DEVTYPE_KBD_TRANS;
 }
 
-u32 kbd_ispress(u32 scan)
+u32 kbd_scan_ispress(u32 scan)
 {
 	return scan < 0x80 && _codepage[scan] != '\0';
 }
 
-u32 kbd_isrelease(u32 scan)
+u32 kbd_scan_isrelease(u32 scan)
 {
 	return scan >= 0x80 && _codepage[scan] != '\0';
+}
+
+u32 kbd_ispressed(u32 code)
+{
+	return _codes_pressed[code & 0xFF];
+}
+
+u32 kbd_isprintable(u32 code)
+{
+	return (code >= 32 && code < 128) || code == '\n' || code == '\r'
+			|| code == '\t';
 }
 
 u32 kbd_tocode(u32 scan)
@@ -131,13 +202,74 @@ u32 kbd_tocode(u32 scan)
 	return _codepage[scan];
 }
 
-u32 kbd_scan_nopoll()
-{
-	return ps2_read_data();
-}
-
-u32 kbd_code_nopoll()
+void int_keyboard()
 {
 	u32 scan = kbd_scan_nopoll();
-	return _codepage[scan % 0x80];
+	u32 code = kbd_tocode(scan);
+
+	if (kbd_scan_ispress(scan)) {
+		_codes_pressed[code] = KBD_PRESSED;
+		if (_wait_next) {
+			_next_char = code;
+			_wait_next = 0;
+		}
+
+		switch (scan) {
+		case KBD_SCP_CAPS:
+			_capslock = (_capslock == KBD_PRESSED ? KBD_RELEASED : KBD_PRESSED);
+			break;
+		}
+	}
+	else if (kbd_scan_isrelease(scan)) {
+		_codes_pressed[code] = KBD_RELEASED;
+	}
+
+	pic_eoi(1);
+}
+
+u32 _isletter(u32 code)
+{
+	return code >= 'a' && code <= 'z';
+}
+
+u32 _isdigit(u32 code)
+{
+	return code >= '0' && code <= '9';
+}
+
+u32 _hasupper(u32 code)
+{
+	u32 ret = _isletter(code) || _isdigit(code);
+	if (!ret) {
+		switch (code) {
+		case '`':
+		case '_':
+		case '=':
+		case '[':
+		case ']':
+		case ';':
+		case '\'':
+		case ',':
+		case '.':
+		case '/':
+			return 1;
+		default:
+			return 0;
+		}
+	} else {
+		return 1;
+	}
+}
+
+static const char* _uplowcodes = \
+								/* These codes are in ASCII */
+		"\01'3456\"908=<_>?"	/* 20 - 2F */
+		")!@#$%^&*(;:,+./"		/* 30 - 3F */
+		"2abcdefghijklmno"		/* 40 - 4F */
+		"pqrstuwxyz{|}6-"		/* 50 - 5F */
+		"~ABCDEFGHIJKLMNO"		/* 60 - 6F */
+		"PQRSTUVWXYZ[\\]`\0"	/* 70 - 7F */;
+
+u32 _uplow(u32 code) {
+	return code >= 32 ? _uplowcodes[code - 32] : '\0';
 }

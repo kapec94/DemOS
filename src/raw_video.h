@@ -43,7 +43,4 @@ int rvid_setpos(int x, int y);
 int rvid_putchar(int c);
 int rvid_puts(const char* s);
 
-int rvid_vprintf(const char* f, va_list);
-int rvid_printf(const char* f, ...);
-
 #endif /* RAW_VIDEO_H_ */

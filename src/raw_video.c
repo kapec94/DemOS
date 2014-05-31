@@ -16,12 +16,6 @@
 
 static void _init_cursor();
 
-static u64 _va_next(va_list*, size_t bits);
-static int _is_format_char(char c);
-static size_t _putc(int c);
-static size_t _puti(int i, int radix, int sign);
-static size_t _putu(unsigned u, int radix);
-
 static u16* video_ptr = NULL;
 static u16* video_base = NULL;
 
@@ -125,61 +119,6 @@ int rvid_puts(const char* s)
 	return strlen(s);
 }
 
-int rvid_vprintf(const char* f, va_list va)
-{
-	int chars = 0;
-
-	int print_format;
-
-	while (*f != 0) {
-		print_format = 0;
-
-		if (*f == '%') {
-			print_format = 1;
-			while (!_is_format_char(*++f)) {
-			}
-		}
-		if (print_format) {
-			switch (*f) {
-			case 's':
-				chars += rvid_puts(va_arg(va, const char*));
-				break;
-			case 'c':
-				chars += _putc(va_arg(va, int));
-				break;
-			case 'd':
-				chars += _puti(_va_next(&va, 32), 10, 0);
-				break;
-			case 'o':
-				chars += _putu(_va_next(&va, 32), 8);
-				break;
-			case 'x':
-				chars += _putu(_va_next(&va, 32), 16);
-				break;
-			}
-			++f;
-			print_format = 0;
-		}
-		else {
-			rvid_putchar(*f++);
-			chars++;
-		}
-	}
-	return chars;
-}
-
-int rvid_printf(const char* f, ...)
-{
-	int chars = 0;
-	va_list va;
-	va_start(va, f);
-
-	chars = rvid_vprintf(f, va);
-
-	va_end(va);
-	return chars;
-}
-
 void _init_cursor()
 {
 	/* We disable cursor */
@@ -187,85 +126,5 @@ void _init_cursor()
 	vga_write_crt(VGA_CRT_CSR, csr | VGA_CSR_CD);
 }
 
-size_t _putc(int c)
-{
-	rvid_putchar(c);
 
-	if (c == '\0') return 0;
-	else return 1;
-}
 
-char* digits = "0123456789ABCDEF";
-size_t _puti(int i, int radix, int sign)
-{
-	if (radix > 16 || radix < 2) return 0;
-
-	size_t chars = 0;
-
-	if (sign && i >= 0) {
-		rvid_putchar('+');
-		chars++;
-	}
-	if (i < 0) {
-		i = -i;
-		rvid_putchar('-');
-		chars++;
-	}
-
-	return chars + _putu((unsigned)i, radix);
-}
-
-size_t _putu(unsigned u, int radix)
-{
-	if (radix > 16 || radix < 2) return 0;
-
-	size_t chars = 0;
-	unsigned j = 1, n = 0;
-
-	if (u == 0) {
-		rvid_putchar('0');
-		chars++;
-	} else {
-		/* We find out, how big is this number */
-		while (u / j >= radix) {
-			j *= radix;
-		}
-
-		while (j != 0) {
-			n = u / j;
-			u = u % j;
-			j /= radix;
-
-			rvid_putchar(digits[n]);
-			chars ++;
-		}
-	}
-
-	return chars;
-}
-
-int _is_format_char(char c)
-{
-	switch (c) {
-	case 's':
-	case 'd':
-	case 'x':
-	case 'o':
-	case 'c':
-		return 1;
-	default:
-		return 0;
-	}
-}
-
-u64 _va_next(va_list* va, size_t bits)
-{
-	switch (bits) {
-	case 32:
-		return va_arg(*va, int);
-	case 64:
-		return va_arg(*va, long long int);
-	default:
-		return 0;
-	}
-}

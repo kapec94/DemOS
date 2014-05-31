@@ -4,7 +4,7 @@
  */
 
 #include <stddef.h>
-#include <raw_video.h>
+#include <conio.h>
 #include "ps2.h"
 
 u32 has_port1;
@@ -18,7 +18,7 @@ u32 ps2_init()
 	has_port1 = has_port2 = 1;
 
 	/* Disable both ports not to be disturbed during initialization */
-	rvid_printf("  Disabling ports...\n");
+	cprintf("  Disabling ports...\n");
 	ps2_write_cmd(PS2_CMD_DISABLE_PORT1);
 	ps2_write_cmd(PS2_CMD_DISABLE_PORT2);
 
@@ -27,7 +27,7 @@ u32 ps2_init()
 
 	result = ps2_read_ccb(&ccb);
 	if (result == E_NO) {
-		rvid_printf("read_ccb error\n");
+		cprintf("read_ccb error\n");
 		return E_NO;
 	}
 
@@ -36,11 +36,11 @@ u32 ps2_init()
 	}
 
 	/* Temporarily write null CCB. */
-	rvid_printf("  Writing null CCB...\n");
+	cprintf("  Writing null CCB...\n");
 	ps2_write_ccb(ps2_null_ccb());
 
 	/* Perform self-check */
-	rvid_printf("  Self-check...\n");
+	cprintf("  Self-check...\n");
 
 	ps2_write_cmd(PS2_CMD_SELF_TEST);
 	result = ps2_read_data();
@@ -49,14 +49,14 @@ u32 ps2_init()
 	}
 
 	/* Perform interface test */
-	rvid_printf("  Port 1 test...\n");
+	cprintf("  Port 1 test...\n");
 	ps2_write_cmd(PS2_CMD_PORT1_TEST);
 	result = ps2_read_data();
 	if (result != PS2_PORT_TEST_OK) {
 		has_port1 = 0;
 	}
 	if (has_port2 == 1) {
-		rvid_printf("  Port 2 test...\n");
+		cprintf("  Port 2 test...\n");
 		ps2_write_cmd(PS2_CMD_PORT2_TEST);
 		result = ps2_read_data();
 		if (result != PS2_PORT_TEST_OK) {
@@ -65,7 +65,7 @@ u32 ps2_init()
 	}
 
 	if (!has_port1 && !has_port2) {
-		rvid_printf("  No ports available!\n");
+		cprintf("  No ports available!\n");
 		return E_NO;
 	}
 

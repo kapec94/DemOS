@@ -11,6 +11,7 @@
 
 #include <vga.h>
 #include <raw_video.h>
+#include <conio.h>
 
 #include <pic.h>
 #include <gdt.h>
@@ -35,47 +36,47 @@ void __attribute__((noreturn, cdecl)) kstart(int magic, struct multiboot_info_t*
 	rvid_clrscr();
 
 	if (magic != MB_MAGIC) {
-		rvid_printf("Multiboot magic is 0x%x != 0x%x! Halting.\n",
+		cprintf("Multiboot magic is 0x%x != 0x%x! Halting.\n",
 				magic, MB_MAGIC);
 		hlt();
 		ud2();
 	}
 
-	rvid_printf("Initializing PIC...\n");
+	cprintf("Initializing PIC...\n");
 	pic_remap(IRQ_OFFSET, IRQ_OFFSET + 8);
 	pic_mask_irqs();
 
 	if (GDT_SIZE == 0) {
-		rvid_printf("GDT_SIZE == 0. Prepare for crash.\n");
+		cprintf("GDT_SIZE == 0. Prepare for crash.\n");
 	}
 	else if (GDT_SIZE > 0x2000) {
-		rvid_printf("GDT_SIZE > 0x2000. Prepare for undefined behavior.\n");
+		cprintf("GDT_SIZE > 0x2000. Prepare for undefined behavior.\n");
 	}
 
 	if (get_bit(mb_info->flags, MB_MMAP_INFO_AVAILABLE) == 0) {
-		rvid_printf("mmap entries unavailable!\n");
+		cprintf("mmap entries unavailable!\n");
 		hlt();
 		ud2();
 	}
 
-	rvid_printf("Setting up GDT...\n");
+	cprintf("Setting up GDT...\n");
 	gdt_init(mb_info->mmap_addr, mb_info->mmap_length, global_descriptor_table);
 
-	rvid_printf("Setting up IDT...\n");
+	cprintf("Setting up IDT...\n");
 	idt_init(global_interrupts_table, &idt_descriptor);
 	interrupts_init(global_interrupts_table);
 
-	rvid_printf("LGDT, LIDT\n");
+	cprintf("LGDT, LIDT\n");
 	lgdt(global_descriptor_table);
 	set_cs(0x08);
 	set_ds(0x10);
 
 	lidt(idt_descriptor);
 
-	rvid_printf("Initializing PS/2 controller...\n");
+	cprintf("Initializing PS/2 controller...\n");
 	result = ps2_init();
 	if (result != S_OK) {
-		rvid_printf("Could not initialize PS/2! Error: %x\n", result);
+		cprintf("Could not initialize PS/2! Error: %x\n", result);
 		hlt();
 		ud2();
 	}
@@ -84,21 +85,21 @@ void __attribute__((noreturn, cdecl)) kstart(int magic, struct multiboot_info_t*
 	if (!kbd_iskbd(port)) {
 		port = PS2_PORT2;
 		if (!kbd_iskbd(port)) {
-			rvid_printf("No keyboard connected!\n");
+			cprintf("No keyboard connected!\n");
 			hlt();
 			ud2();
 		} else {
-			rvid_printf("Found keyboard at port 2\n");
+			cprintf("Found keyboard at port 2\n");
 		}
 	} else {
-		rvid_printf("Found keyboard at port 1\n");
+		cprintf("Found keyboard at port 1\n");
 	}
 
 	kbd_init(port);
 
 	sti();
 
-	rvid_printf("Done.\n");
+	cprintf("Done.\n");
 	while (1) {
 		hlt();
 	}

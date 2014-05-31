@@ -1,4 +1,4 @@
-#include <multiboot.h>
+#include <mbdef.h>
 #include <configuration.h>
 
 .data

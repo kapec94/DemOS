@@ -4,7 +4,7 @@
  */
 
 #include <cpu.h>
-#include <raw_video.h>
+#include <conio.h>
 #include <gdt.h>
 #include <pic.h>
 #include <configuration.h>
@@ -58,7 +58,7 @@ void dummy_handler()
 
 void int0_div_error()
 {
-	rvid_printf("Division error!\n");
+	cprintf("Division error!\n");
 
 	cli();
 	hlt();
@@ -66,21 +66,12 @@ void int0_div_error()
 
 void int3_breakpoint()
 {
-	rvid_printf("int3 handler!\n");
+	cprintf("int3 handler!\n");
 }
 
 void int13_triple_fault()
 {
-	rvid_printf("TRIPLE FAULT\n");
+	cprintf("TRIPLE FAULT\n");
 	cli();
 	hlt();
-}
-
-void int_keyboard()
-{
-	u32 scan = kbd_scan_nopoll();
-	if (kbd_ispress(scan)) {
-		rvid_putchar(kbd_tocode(scan));
-	}
-	pic_eoi(1);
 }

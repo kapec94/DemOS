@@ -44,6 +44,7 @@ static inline u32 getticks()
 #define sti() __asm__ volatile("sti")
 #define cli() __asm__ volatile("cli")
 
+#define nop() __asm__ volatile("nop")
 #define hlt() __asm__ volatile("hlt")
 /* Undefined instruction. It is meant to crash the kernel. */
 #define ud2() __asm__ volatile("ud2")
