@@ -7,6 +7,7 @@
 #include <stddef.h>
 
 #include <raw_video.h>
+#include <keyboard.h>
 
 #include "conio.h"
 
@@ -60,6 +61,32 @@ int cputs(const char* str)
 {
 	rvid_puts(str);
 	return 0;
+}
+
+static volatile int _chbuf;
+int getch()
+{
+	int c = 0;
+	if (_chbuf != '\0') {
+		c = _chbuf;
+		_chbuf = '\0';
+	} else {
+		c = kbd_getch();
+	}
+	return c;
+}
+
+int getche()
+{
+	int c = getch();
+	putch(c);
+	return c;
+}
+
+int ungetch(int c)
+{
+	_chbuf = c;
+	return c;
 }
 
 int _vsnprintf(char* out, int n, const char* f, va_list va)
@@ -179,6 +206,7 @@ int _sputu(char* out, int n, unsigned u, int radix)
 	if (u == 0) {
 		_sputc(out, n, '0');
 		chars ++;
+		out ++;
 	} else {
 		/* We find out, how big is this number */
 		while (u / j >= radix) {
@@ -192,6 +220,7 @@ int _sputu(char* out, int n, unsigned u, int radix)
 
 			_sputc(out, n, digits[m]);
 			chars ++;
+			out ++;
 		}
 	}
 

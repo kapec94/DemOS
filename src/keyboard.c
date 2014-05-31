@@ -43,7 +43,7 @@
 #define KBD_SCP_PAD_8 '\x94'
 #define KBD_SCP_PAD_9 '\x95'
 
-#define KBD_SCP_CAPS '\x09'
+#define KBD_SCP_CAPS '\x0B'
 #define KBD_SCP_NUM '\x0C'
 
 #define KBD_SCP_F1 '\x80'
@@ -70,7 +70,7 @@ static const char* _codepage = \
 		"\x0E\\"		/* 2A - 2B */
 		"zxcvbnm,./"	/* 2C - 35 */
 		"\x1F\xFA\x12"	/* 36 - 38 */
-		" \x09"			/* 39 - 3A */
+		" \x0B"			/* 39 - 3A */
 		"\x80\x81\x82"	/* 3B - 3D */
 		"\x83\x84\x85"	/* 3E - 40 */
 		"\x86\x87\x88"	/* 41 - 43 */
@@ -188,7 +188,7 @@ u32 kbd_scan_isrelease(u32 scan)
 
 u32 kbd_ispressed(u32 code)
 {
-	return _codes_pressed[code & 0xFF];
+	return _codes_pressed[code & 0xFF] == KBD_PRESSED;
 }
 
 u32 kbd_isprintable(u32 code)
@@ -199,7 +199,7 @@ u32 kbd_isprintable(u32 code)
 
 u32 kbd_tocode(u32 scan)
 {
-	return _codepage[scan];
+	return _codepage[scan % 0x80];
 }
 
 void int_keyboard()
@@ -214,7 +214,7 @@ void int_keyboard()
 			_wait_next = 0;
 		}
 
-		switch (scan) {
+		switch (code) {
 		case KBD_SCP_CAPS:
 			_capslock = (_capslock == KBD_PRESSED ? KBD_RELEASED : KBD_PRESSED);
 			break;
@@ -263,13 +263,18 @@ u32 _hasupper(u32 code)
 
 static const char* _uplowcodes = \
 								/* These codes are in ASCII */
-		"\01'3456\"908=<_>?"	/* 20 - 2F */
+		" 1'3456\"908=<_>?"	/* 20 - 2F */
 		")!@#$%^&*(;:,+./"		/* 30 - 3F */
 		"2abcdefghijklmno"		/* 40 - 4F */
-		"pqrstuwxyz{|}6-"		/* 50 - 5F */
+		"pqrstuvwxyz{|}6-"		/* 50 - 5F */
 		"~ABCDEFGHIJKLMNO"		/* 60 - 6F */
 		"PQRSTUVWXYZ[\\]`\0"	/* 70 - 7F */;
 
 u32 _uplow(u32 code) {
-	return code >= 32 ? _uplowcodes[code - 32] : '\0';
+	u32 new = code;
+	if (code >= 32) {
+		new = _uplowcodes[code - 32];
+	}
+	if (new == '\0') return code;
+	else return new;
 }

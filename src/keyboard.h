@@ -17,6 +17,8 @@ u32 kbd_tocode(u32 scan);
 u32 kbd_scan_nopoll();
 u32 kbd_code_nopoll();
 
+u32 kbd_getch();
+
 u32 kbd_ispressed(u32 code);
 u32 kbd_isreleased(u32 code);
 
