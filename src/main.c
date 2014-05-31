@@ -35,8 +35,6 @@ void __attribute__((noreturn, cdecl)) kstart(int magic, struct multiboot_info_t*
 	rvid_init(DEFAULT_VIDEO_BASE, 80, 25);
 	rvid_clrscr();
 
-	cprintf("%x\n", 0xDEADBEEF);
-
 	if (magic != MB_MAGIC) {
 		cprintf("Multiboot magic is 0x%x != 0x%x! Halting.\n",
 				magic, MB_MAGIC);

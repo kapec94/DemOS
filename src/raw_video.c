@@ -14,9 +14,7 @@
 
 #define ASSERT_INIT()		if (video_ptr == NULL) return E_NO
 
-static void _init_cursor();
-
-static u16* video_ptr = NULL;
+static volatile u16* video_ptr = NULL;
 static u16* video_base = NULL;
 
 static u32 video_cols = 0;
@@ -24,13 +22,15 @@ static u32 video_rows = 0;
 
 static u16 video_attr = RVID_ATTR(COLOR_LGRAY, COLOR_BLACK);
 
+static volatile int _cursor_enabled = 1;
+void _cursor_update();
+void _cursor_setpos(int x, int y);
+
 int rvid_init(void* base, int width, int height)
 {
 	if (base == NULL) {
 		base = DEFAULT_VIDEO_BASE;
 	}
-
-	_init_cursor();
 
 	video_ptr = video_base = (u16*)base;
 	video_cols = width;
@@ -83,6 +83,7 @@ int rvid_setpos(int x, int y)
 	u32 offset = y * video_cols + x;
 	video_ptr = video_base + offset;
 
+	_cursor_update();
 	return S_OK;
 }
 
@@ -105,6 +106,7 @@ int rvid_putchar(int c)
 		break;
 	default:
 		*video_ptr++ = video_attr << 8 | (u8)c;
+		_cursor_update();
 		break;
 	}
 
@@ -114,17 +116,47 @@ int rvid_putchar(int c)
 int rvid_puts(const char* s)
 {
 	ASSERT_INIT();
+	int with_cursor = _cursor_enabled;
+
+	if (with_cursor) {
+		rvid_cursor_disable();
+	}
 	while (rvid_putchar(*s++) != 0) ;
+	if (with_cursor) {
+		rvid_cursor_enable();
+	}
 
 	return strlen(s);
 }
 
-void _init_cursor()
+void rvid_cursor_disable()
 {
-	/* We disable cursor */
 	u8 csr = vga_read_crt(VGA_CRT_CSR);
-	vga_write_crt(VGA_CRT_CSR, csr | VGA_CSR_CD);
+	set_bit(csr, VGA_CSR_CD);
+	vga_write_crt(VGA_CRT_CSR, csr);
+	_cursor_enabled = 0;
 }
 
+void rvid_cursor_enable()
+{
+	u8 csr = vga_read_crt(VGA_CRT_CSR);
+	clear_bit(csr, VGA_CSR_CD);
+	vga_write_crt(VGA_CRT_CSR, csr);
+	_cursor_enabled = 1;
+}
 
+void _cursor_update()
+{
+	int x, y;
+	rvid_getpos(&x, &y);
 
+	_cursor_setpos(x, y);
+}
+
+void _cursor_setpos(int x, int y)
+{
+	int pos = y * video_cols + x;
+
+	vga_write_crt(VGA_CRT_LOCL, pos & 0xFF);
+	vga_write_crt(VGA_CRT_LOCH, (pos >> 8) & 0xFF);
+}

@@ -22,8 +22,11 @@
 /* CRT index registers */
 /* cursor start register */
 #define	VGA_CRT_CSR		(0x0A)
+#define VGA_CRT_LOCH	(0x0E)
+#define VGA_CRT_LOCL	(0x0F)
+
 /* cursor disable bit */
-#define VGA_CSR_CD		(1 << 5)
+#define VGA_CSR_CD		(0x05)
 
 /* This bit selects the CRT controller addresses. When set to 0, this bit
  * sets the CRT controller addresses to 0x03Bx and the address for the Input
