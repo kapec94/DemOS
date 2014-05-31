@@ -49,6 +49,7 @@ int rvid_clrscr()
 			  "a" ((u16)(video_attr << 8 | ' '))
 			:);
 
+	rvid_setpos(0, 0);
 	return S_OK;
 }
 
@@ -91,16 +92,18 @@ int rvid_putchar(int c)
 {
 	ASSERT_INIT();
 
-	int y;
+	int x, y;
+	rvid_getpos(&x, &y);
 
 	switch (c) {
 	case '\r':
-		rvid_getpos(NULL, &y);
 		rvid_setpos(0, y);
 		break;
 	case '\n':
-		rvid_getpos(NULL, &y);
 		rvid_setpos(0, y + 1);
+		break;
+	case '\t':
+		rvid_setpos(x + 4, y);
 		break;
 	case '\0':
 		break;

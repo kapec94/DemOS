@@ -4,12 +4,15 @@
  */
 
 #include <stddef.h>
+#include <string.h>
 
 #include <configuration.h>
 #include <multiboot.h>
 #include <cpu.h>
 
 #include <vga.h>
+#include <raw_video.h>
+
 #include <raw_video.h>
 #include <conio.h>
 
@@ -24,6 +27,8 @@ struct gdt_entry_t global_descriptor_table[GDT_SIZE];
 struct idt_entry_t global_interrupts_table[IDT_SIZE];
 
 struct table_descriptor_t idt_descriptor;
+
+int _main();
 
 void __attribute__((noreturn, cdecl)) kstart(int magic, struct multiboot_info_t* mb_info)
 {
@@ -99,12 +104,63 @@ void __attribute__((noreturn, cdecl)) kstart(int magic, struct multiboot_info_t*
 
 	sti();
 
-	cprintf("> ");
-	while (1) {
-		getche();
-	}
+	rvid_clrscr();
+	_main();
 
 	while (1) {
 		hlt();
 	}
+}
+
+char _buffer[256];
+
+void _intro();
+char* _getline(char* out, size_t n);
+
+int _main()
+{
+	_intro();
+
+	while (1) {
+		cputs("> ");
+		_getline(_buffer, 256);
+
+		if (strcmp(_buffer, "help") == 0) {
+			cputs("This is help.\n");
+		} else {
+			cputs("Unknown command.\n");
+		}
+	}
+
+	return 0;
+}
+
+void _intro()
+{
+	int attr0 = rvid_getattr();
+	int attr1 = RVID_ATTR(COLOR_LBLUE, COLOR_BLACK);
+	int attr2 = RVID_ATTR(COLOR_YELLOW, COLOR_BLACK);
+
+	rvid_setattr(attr1); cputs("Dem");
+	rvid_setattr(attr2); cputs("OS");
+	rvid_setattr(attr0);
+	cputs(" indev, compilation from " __DATE__ ", " __TIME__ "\n");
+	cputs("Hello!\n");
+}
+
+char* _getline(char* out, size_t n)
+{
+	int c, i;
+	if (n == 0) return out;
+
+	for (i = 0; i < n - 1; i++) {
+		c = getche();
+		if (c == '\n') {
+			break;
+		}
+		out[i] = c;
+	}
+
+	out[i] = '\0';
+	return out;
 }

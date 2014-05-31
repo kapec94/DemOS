@@ -18,6 +18,20 @@ char* strcpy(char* dest, const char* source)
 	return dest;
 }
 
+int strcmp(const char* str1, const char* str2)
+{
+	do {
+		if (*str1 < *str2) {
+			return 1;
+		}
+		if (*str1 > *str2) {
+			return -1;
+		}
+	} while (*(str1++) && *(str2++));
+
+	return 0;
+}
+
 void* memset(void* ptr, int value, size_t num)
 {
 	__asm__("repz stosb"
