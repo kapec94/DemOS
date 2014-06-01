@@ -22,6 +22,8 @@
 /* CRT index registers */
 /* cursor start register */
 #define	VGA_CRT_CSR		(0x0A)
+#define VGA_CRT_ADDRH	(0x0C)
+#define VGA_CRT_ADDRL	(0x0D)
 #define VGA_CRT_LOCH	(0x0E)
 #define VGA_CRT_LOCL	(0x0F)
 

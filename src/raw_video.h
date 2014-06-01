@@ -46,4 +46,6 @@ int rvid_puts(const char* s);
 void rvid_cursor_disable();
 void rvid_cursor_enable();
 
+void rvid_setlineoffset(u32 offset);
+
 #endif /* RAW_VIDEO_H_ */

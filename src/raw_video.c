@@ -22,9 +22,12 @@ static u32 video_rows = 0;
 
 static u16 video_attr = RVID_ATTR(COLOR_LGRAY, COLOR_BLACK);
 
-static volatile int _cursor_enabled = 1;
+static volatile u32 _cursor_enabled = 1;
+static volatile u32 _lineoffset = 0;
+
 void _cursor_update();
 void _cursor_setpos(int x, int y);
+void _line_update();
 
 int rvid_init(void* base, int width, int height)
 {
@@ -85,6 +88,8 @@ int rvid_setpos(int x, int y)
 	video_ptr = video_base + offset;
 
 	_cursor_update();
+	_line_update();
+
 	return S_OK;
 }
 
@@ -110,6 +115,7 @@ int rvid_putchar(int c)
 	default:
 		*video_ptr++ = video_attr << 8 | (u8)c;
 		_cursor_update();
+		_line_update();
 		break;
 	}
 
@@ -148,6 +154,16 @@ void rvid_cursor_enable()
 	_cursor_enabled = 1;
 }
 
+void rvid_setlineoffset(u32 offset)
+{
+	offset *= video_cols;
+
+	vga_write_crt(VGA_CRT_ADDRL, offset & 0xFF);
+	vga_write_crt(VGA_CRT_ADDRH, (offset >> 8) & 0xFF);
+
+	_lineoffset = offset;
+}
+
 void _cursor_update()
 {
 	int x, y;
@@ -162,4 +178,14 @@ void _cursor_setpos(int x, int y)
 
 	vga_write_crt(VGA_CRT_LOCL, pos & 0xFF);
 	vga_write_crt(VGA_CRT_LOCH, (pos >> 8) & 0xFF);
+}
+
+void _line_update()
+{
+	int x, y;
+	rvid_getpos(&x, &y);
+
+	if (y > video_rows + _lineoffset / video_cols) {
+		rvid_setlineoffset(y - video_rows + 1);
+	}
 }
