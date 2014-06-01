@@ -23,6 +23,8 @@
 #include <ps2.h>
 #include <keyboard.h>
 
+#include <cmd.h>
+
 struct gdt_entry_t global_descriptor_table[GDT_SIZE];
 struct idt_entry_t global_interrupts_table[IDT_SIZE];
 
@@ -112,10 +114,17 @@ void __attribute__((noreturn, cdecl)) kstart(int magic, struct multiboot_info_t*
 	}
 }
 
-char _buffer[256];
+
 
 void _intro();
+void _parse_cmd(const char* cmd, int* argc, char** argv, char* argbuf);
+
 char* _getline(char* out, size_t n);
+
+char _buffer[256];
+char _argbuf[256];
+char* _argv[16];
+int _argc;
 
 int _main()
 {
@@ -124,11 +133,12 @@ int _main()
 	while (1) {
 		cputs("> ");
 		_getline(_buffer, 256);
+		_parse_cmd(_buffer, &_argc, _argv, _argbuf);
 
-		if (strcmp(_buffer, "help") == 0) {
-			cputs("This is help.\n");
+		if (_argc > 0) {
+		    cmd_call(_argv[0], _argc, _argv);
 		} else {
-			cputs("Unknown command.\n");
+			cprintf("Error parsing command!\n");
 		}
 	}
 
@@ -163,4 +173,22 @@ char* _getline(char* out, size_t n)
 
 	out[i] = '\0';
 	return out;
+}
+
+void _parse_cmd(const char* cmd, int* argc, char** argv, char* argbuf)
+{
+	char* tok;
+
+	strcpy(argbuf, cmd);
+	tok = strtok(argbuf, " ");
+
+	if (!tok) {
+		*argc = -1;
+		return;
+	}
+
+	*argc = 0;
+	while ((tok = strtok(NULL, " "))) {
+		argv[(*argc)++] = tok;
+	}
 }

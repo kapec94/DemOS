@@ -175,7 +175,7 @@ int _sputs(char* out, int n, const char* in)
 		chars++;
 	};
 
-	out[chars++] = '\0';
+	out[chars] = '\0';
 	return chars;
 }
 
