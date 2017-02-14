@@ -8,7 +8,7 @@
 
 #include <stddef.h>
 
-#define ISR(name) _isr_ ## name
+#define ISR(name) __isr_ ## name
 #define DECL_HANDLER(name) \
 	void name(); \
 	void ISR(name)()

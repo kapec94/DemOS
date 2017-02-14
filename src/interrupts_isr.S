@@ -7,7 +7,7 @@
 .global __isr_\handler
 __isr_\handler:
 	pusha
-	call	_\handler
+	call	\handler
 	popa
 	iret
 .endm

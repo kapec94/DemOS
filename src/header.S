@@ -19,5 +19,5 @@ _entry:
 	pushl	%ebx
 	pushl	%eax
 
-	call 	_kstart
+	call 	kstart
 	hlt
