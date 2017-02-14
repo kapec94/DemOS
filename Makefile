@@ -1,8 +1,15 @@
 SRC=src
 OUT=out
 
+OUT_DIR=out
+
+BUILD_DIR=$(OUT_DIR)/build
+INSTALL_DIR=$(OUT_DIR)/install
+
 KERNEL=demos.exe
 KERNEL_DIRTY=$(KERNEL).dirty
+
+IMAGE=$(OUT_DIR)/demos.img
 
 CC=gcc
 CC_INCLUDES=-I$(SRC)
@@ -10,7 +17,7 @@ CC_FLAGS=-c -ansi -m32 -g -Wall $(CC_INCLUDES)
 GAS_FLAGS=-c -m32 -g -Wall $(CC_INCLUDES)
 LD=/usr/bin/ld
 LD_FLAGS=-T link.ld -m i386pe
-PYTHON=C:/Python34/python.exe
+PYTHON=python
 
 OBJECTS=header.o main.o string.o raw_video.o cpu.o gdt.o com.o bda.o vga.o \
 	interrupts_isr.o interrupts.o pic.o ps2.o keyboard.o conio.o cmd.o
@@ -21,19 +28,14 @@ FILES=$(OUT)/$(KERNEL) $(OUT)/$(KERNEL_DIRTY) \
 
 CONFIG=./config.py
 
-INSTALL_HOST=mateusz@192.168.0.106
-BOOT_DIR=/media/demos/boot
-ACQUIRE_COMMAND='mount /media/demos'
-RELEASE_COMMAND='umount /media/demos || true'
-
-SSH=ssh $(INSTALL_HOST)
-SCP=scp
-
 $(OUT):
 	mkdir -p $@
 
 configuration.%:
 	$(PYTHON) $(CONFIG) conf $@
+
+tools: configuration.sh
+
 
 %.o: $(SRC)/%.c $(SRC)/configuration.h $(OUT)
 	$(CC) $(CC_FLAGS) -o $(OUT)/$@ $<
@@ -47,16 +49,13 @@ $(KERNEL_DIRTY): $(OBJECTS) $(SRC)/configuration.h configuration.ld $(OUT)
 $(KERNEL): $(KERNEL_DIRTY)
 	objcopy -g -O elf32-i386 $(OUT)/$< $(OUT)/$@
 
+$(IMAGE): tools $(KERNEL)
+
+
 all: $(KERNEL)
 
-install: all
-	$(SSH) $(ACQUIRE_COMMAND)
-	$(SCP) $(OUT)/$(KERNEL) $(INSTALL_HOST):$(BOOT_DIR)/$(KERNEL)
-	$(SCP) grub.cfg $(INSTALL_HOST):$(BOOT_DIR)/grub/grub.cfg
-	$(SSH) $(RELEASE_COMMAND)
+install:
 
-release_remote:
-	$(SSH) $(RELEASE_COMMAND)
 
-clean: release_remote
+clean:
 	rm -f $(FILES)
