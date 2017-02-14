@@ -1,0 +1,73 @@
+setup_mounted=''
+setup_loop_dev=''
+
+_die()
+{
+    echo $1
+    exit 1
+}
+
+_log()
+{
+    echo $* > /dev/stderr
+}
+
+_usage()
+{
+    _log "usage: $1 <out_img> <size>"
+}
+
+_cmd()
+{
+    [ -n "$1" ] || _die "_cmd: no argument"
+    _log "> $1"
+    eval "command $1"
+
+    result="$?"
+
+    [ -n "$2" -o "$result" = "0" ] || _die "! command failed - aborting"
+}
+
+[ "$#" == "2" ] || {
+    _usage $0
+    exit 1
+}
+
+img_file=$1
+size=$2
+
+[ -n "$img_file" ] || _die "File name not specified"
+[ ! -f "$img_file" ] || _die "File $img_file exists. I won't proceed."
+
+[ -n "$size" ] || _die "Image size not specified"
+[ "$size" -gt "0" ] || _die "Image size must be greater than 0"
+
+_cmd "dd if=/dev/zero of='$img_file' bs='${size}M' count=1"
+
+_cmd "parted '$img_file' mklabel gpt"
+
+parted_out=$(_cmd "parted '$img_file' print free -sm")
+echo "$parted_out"
+
+line=$(echo $parted_out | tail -1)
+
+IFS=';' read -ra lines <<< "$line"
+
+geometry_line=${lines[1]}
+bounds_line=${lines[2]}
+
+IFS=':' read -ra geometry <<< "$geometry_line"
+IFS=':' read -ra bounds <<< "$bounds_line"
+
+[ ${geometry[2]} = "file" ] || _die "Invalid image type ${geometry[2]}; 'file' expected!"
+[ ${geometry[5]} = "gpt" ] || _die "Invalid partition table type ${geometry[5]}; 'gpt' expected!"
+
+[ ${bounds[4]} = "free" ] || _die "Invalid first partition type ${bounds[4]}; 'free' expected!"
+
+part_begin=${bounds[1]}
+part_end=${bounds[2]}
+
+_cmd "parted '$img_file' mkpart primary '$part_begin' '$part_end' -s"
+_cmd "parted '$img_file' print free -sm"
+
+_cmd "mkfs.vfat '$img_file'"
